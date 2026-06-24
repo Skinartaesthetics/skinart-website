@@ -43,6 +43,14 @@
   };
 
   let overlayEl, bodyEl, bubbleWrapEl, tooltipEl;
+  let activeCameraStream = null; // live getUserMedia stream, if one is open
+
+  function stopActiveCamera() {
+    if (activeCameraStream) {
+      activeCameraStream.getTracks().forEach((t) => t.stop());
+      activeCameraStream = null;
+    }
+  }
 
   function escapeHtml(str) {
     return String(str || "").replace(/[&<>"']/g, (c) => ({
@@ -112,6 +120,7 @@
   }
 
   function closeChat() {
+    stopActiveCamera();
     overlayEl.classList.remove("open");
     document.body.style.overflow = "";
     setTimeout(() => { overlayEl.hidden = true; }, 250);
@@ -240,18 +249,29 @@
 
   /* ---------------- Step 4: Selfie upload ---------------- */
   function renderUpload(dots) {
+    stopActiveCamera();
     bodyEl.innerHTML = `
       <div class="ai-step">
         ${dots}
         <h3>Your selfie</h3>
         <p>Please upload or snap a clear, makeup-free selfie in natural light. Face the camera directly, avoid filters, and make sure your skin is fully visible.</p>
 
+        <div class="ai-camera-live" id="ai-camera-live" hidden>
+          <video id="ai-camera-video" autoplay playsinline muted></video>
+          <div class="ai-camera-actions">
+            <button class="ai-btn" id="ai-camera-capture-btn">Capture</button>
+            <button class="ai-btn ai-btn-ghost" id="ai-camera-cancel-btn">Cancel</button>
+          </div>
+        </div>
+
         <div id="ai-preview-area"></div>
 
-        <div class="ai-upload-actions">
-          <button class="ai-btn ai-btn-ghost" id="ai-camera-btn">${ICONS.camera} Take Photo</button>
-          <button class="ai-btn ai-btn-ghost" id="ai-library-btn">Choose from Library</button>
+        <div class="ai-upload-actions" id="ai-upload-actions">
+          <button class="ai-btn ai-btn-ghost" id="ai-camera-btn">${ICONS.camera} Take a Photo</button>
+          <button class="ai-btn ai-btn-ghost" id="ai-library-btn">Upload from Gallery</button>
         </div>
+        <p class="ai-upload-hint">On desktop, you may be prompted to upload a photo instead. For the easiest selfie capture, open this page from your phone.</p>
+
         <input type="file" id="ai-selfie-input-camera" accept="image/*" capture="user">
         <input type="file" id="ai-selfie-input" accept="image/*">
 
@@ -263,37 +283,86 @@
     const libraryInput = bodyEl.querySelector("#ai-selfie-input");
     const continueBtn = bodyEl.querySelector("#ai-upload-continue");
     const previewArea = bodyEl.querySelector("#ai-preview-area");
+    const liveArea = bodyEl.querySelector("#ai-camera-live");
+    const videoEl = bodyEl.querySelector("#ai-camera-video");
+    const uploadActions = bodyEl.querySelector("#ai-upload-actions");
 
-    bodyEl.querySelector("#ai-camera-btn").addEventListener("click", () => cameraInput.click());
-    bodyEl.querySelector("#ai-library-btn").addEventListener("click", () => libraryInput.click());
+    function stopLiveCamera() {
+      stopActiveCamera();
+      liveArea.hidden = true;
+      uploadActions.hidden = false;
+    }
+
+    function setImageFromDataUrl(dataUrl) {
+      state.imageDataUrl = dataUrl;
+      previewArea.innerHTML = `
+        <div class="ai-preview-wrap">
+          <img src="${dataUrl}" alt="Your selfie preview">
+          <button class="ai-preview-remove" id="ai-preview-remove">&times;</button>
+        </div>
+      `;
+      previewArea.querySelector("#ai-preview-remove").addEventListener("click", () => {
+        state.imageDataUrl = null;
+        state.imageFile = null;
+        previewArea.innerHTML = "";
+        continueBtn.disabled = true;
+      });
+      continueBtn.disabled = false;
+    }
 
     function handleFile(file) {
-      if (!file) return;
+      if (!file || !file.type || !file.type.startsWith("image/")) return;
       state.imageFile = file;
       const reader = new FileReader();
-      reader.onload = (e) => {
-        state.imageDataUrl = e.target.result;
-        previewArea.innerHTML = `
-          <div class="ai-preview-wrap">
-            <img src="${state.imageDataUrl}" alt="Your uploaded selfie">
-            <button class="ai-preview-remove" id="ai-preview-remove">&times;</button>
-          </div>
-        `;
-        previewArea.querySelector("#ai-preview-remove").addEventListener("click", () => {
-          state.imageDataUrl = null;
-          state.imageFile = null;
-          previewArea.innerHTML = "";
-          continueBtn.disabled = true;
-        });
-        continueBtn.disabled = false;
-      };
+      reader.onload = (e) => setImageFromDataUrl(e.target.result);
       reader.readAsDataURL(file);
     }
+
+    // "Take a Photo" — prefer a live in-page camera (getUserMedia) so we can
+    // force the front-facing camera and give a real Capture button. If the
+    // browser/device doesn't support it, or the user denies permission, fall
+    // back to the native file input (capture="user"), which on mobile still
+    // opens the camera app, and on desktop falls back to a file picker.
+    async function openLiveCamera() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        cameraInput.click();
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user" },
+          audio: false,
+        });
+        activeCameraStream = stream;
+        videoEl.srcObject = stream;
+        liveArea.hidden = false;
+        uploadActions.hidden = true;
+      } catch (err) {
+        cameraInput.click();
+      }
+    }
+
+    bodyEl.querySelector("#ai-camera-btn").addEventListener("click", openLiveCamera);
+    bodyEl.querySelector("#ai-library-btn").addEventListener("click", () => libraryInput.click());
+
+    bodyEl.querySelector("#ai-camera-capture-btn").addEventListener("click", () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = videoEl.videoWidth || 640;
+      canvas.height = videoEl.videoHeight || 640;
+      canvas.getContext("2d").drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+      stopLiveCamera();
+      state.imageFile = null;
+      setImageFromDataUrl(dataUrl);
+    });
+
+    bodyEl.querySelector("#ai-camera-cancel-btn").addEventListener("click", stopLiveCamera);
 
     cameraInput.addEventListener("change", (e) => handleFile(e.target.files[0]));
     libraryInput.addEventListener("change", (e) => handleFile(e.target.files[0]));
 
     continueBtn.addEventListener("click", () => {
+      stopActiveCamera();
       state.step = "analyzing";
       render();
       runAnalysis();
@@ -312,7 +381,6 @@
 
   async function runAnalysis() {
     let analysis = null;
-    let analysisFailed = false;
 
     // Single call to our own serverless endpoint — it validates the lead's
     // info, calls OpenAI server-side, emails the lead to the studio, and
@@ -331,64 +399,61 @@
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        console.error("Analyze-skin endpoint returned an error:", data);
-        analysisFailed = true;
+      // The backend always normalizes the report to ONE string field: analysis.
+      // (Regardless of what it might be called internally — report/result/
+      // message/aiAnalysis — the widget only ever reads `data.analysis`.)
+      if (!res.ok || !data.analysisAvailable || !data.analysis || typeof data.analysis !== "string") {
+        console.error("Analyze-skin endpoint returned no usable analysis:", data);
       } else {
-        analysis = data.analysis || null;
-        analysisFailed = !data.analysisAvailable;
+        analysis = data.analysis;
       }
     } catch (err) {
-      analysisFailed = true;
+      console.error("Analyze-skin request failed:", err);
     }
 
     state.analysis = analysis;
     state.step = "results";
-    render(analysisFailed);
+    render();
   }
 
   /* ---------------- Step 6: Results ---------------- */
-  function renderResults(analysisFailed) {
-    const a = state.analysis;
+  // The backend sends the report as one string, with sections separated by a
+  // blank line and each section formatted as "Label: content". Split it back
+  // out here purely so each section can keep its own styled heading.
+  function parseAnalysisSections(analysisText) {
+    if (!analysisText || typeof analysisText !== "string") return [];
+    return analysisText
+      .split(/\n\s*\n/)
+      .map((chunk) => {
+        const idx = chunk.indexOf(":");
+        if (idx === -1) return null;
+        const label = chunk.slice(0, idx).trim();
+        const content = chunk.slice(idx + 1).trim();
+        if (!label || !content) return null;
+        return [label, content];
+      })
+      .filter(Boolean);
+  }
 
-    let body = "";
-    if (a) {
-      const rows = [
-        ["Overall Visible Condition", a.overall],
-        ["Hydration", a.hydration],
-        ["Visible Congestion", a.congestion],
-        ["Texture", a.texture],
-        ["Redness / Sensitivity", a.redness],
-        ["Pigmentation / Tone", a.pigmentation],
-        ["Pores", a.pores],
-        ["Suggested Treatment Direction", a.suggestedDirection],
-        ["Recommendation", a.recommendation],
-      ];
-      body = rows
-        .filter(([, v]) => v)
-        .map(([label, v]) => `
-          <div class="ai-result-section">
-            <h4>${escapeHtml(label)}</h4>
-            <p>${escapeHtml(v)}</p>
-          </div>
-        `)
-        .join("");
-    }
+  function renderResults() {
+    const sections = parseAnalysisSections(state.analysis);
+    const hasReport = sections.length > 0;
+
+    const reportHtml = hasReport
+      ? sections
+          .map(([label, content]) => `
+            <div class="ai-result-section">
+              <h4>${escapeHtml(label)}</h4>
+              <p>${escapeHtml(content)}</p>
+            </div>
+          `)
+          .join("")
+      : `<div class="ai-error-box">Instant results aren't quite ready yet on our end — but don't worry, your photo and details have already been sent to our team. An esthetician will personally review your submission and follow up with recommendations.</div>`;
 
     bodyEl.innerHTML = `
       <div class="ai-step">
         <h3>Your Preliminary Results</h3>
-        ${
-          a
-            ? body
-            : `<div class="ai-error-box">Instant results aren't quite ready yet on our end — but don't worry, your photo and details have already been sent to our team. An esthetician will personally review your submission and follow up with recommendations.</div>`
-        }
-
-        <div class="ai-result-summary">
-          Your preliminary AI skin analysis is complete. Based on the selfie provided, your skin may benefit from a customized professional consultation so we can properly assess your barrier, hydration levels, congestion, texture, and treatment options in person.
-          <br><br>
-          A SkinArt esthetician will review your submission and follow up with personalized recommendations.
-        </div>
+        ${reportHtml}
 
         <p style="font-size:.85rem;">Ready for a professional skin plan? Schedule your appointment and let's create a treatment protocol designed around your skin.</p>
 

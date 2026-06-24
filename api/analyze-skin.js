@@ -13,7 +13,22 @@
                          either name works, see getEmailApiKey() below)
      LEAD_EMAIL_TO    — defaults to info@skinartaesthetics.com if unset
 
-   See AI-Skin-Analysis-Setup.md for full deployment steps.
+   Response shape (normalized — the frontend only ever needs to read `analysis`):
+     {
+       success: true,
+       analysisAvailable: true|false,
+       analysis: "Full AI-generated skin analysis report, as one formatted
+                   string with labeled sections" | null,
+       emailSent: true|false
+     }
+
+   Internally OpenAI is asked for structured JSON (one field per section) so
+   the model stays on-topic and every section is guaranteed to be filled in,
+   but that structured object is flattened into a single `analysis` string
+   before it's sent back to the widget or used in the lead email — so there
+   is exactly one field name to ever look for: analysis.
+
+   See SETUP.md for full deployment steps.
    ========================================================================== */
 
 export const config = {
@@ -36,18 +51,19 @@ STRICT RULES — never violate these:
 - Use only soft, observational phrasing such as: "appears", "may suggest", "visible signs of", "could benefit from", "based on the image provided".
 - Tone: warm, calm, boutique, professional, encouraging — never salesy or robotic.
 
-Respond ONLY with strict JSON in this exact shape (all values short, 1-2 sentences, plain strings):
+Respond ONLY with strict JSON in this exact shape (every value is required, 1-3 full sentences, plain strings, written directly to the client — specific to what is visible in THIS photo, never generic boilerplate):
 {
-  "overall": "Overall visible skin condition",
-  "hydration": "Possible dehydration or dryness",
-  "congestion": "Congestion or blackheads, only if visible",
-  "texture": "Texture concerns",
+  "overall": "Overall visible skin impression",
+  "hydration": "Hydration / dryness signs",
+  "congestion": "Congestion or blackheads, only if visible — otherwise note that none appear visibly apparent",
+  "texture": "Texture and visible pore appearance",
   "redness": "Redness or sensitivity signs",
-  "pigmentation": "Pigmentation or uneven tone",
-  "pores": "Enlarged pores, only if visible",
-  "suggestedDirection": "Suggested professional treatment direction",
-  "recommendation": "A warm recommendation to schedule an in-person appointment to confirm these visual impressions"
+  "pigmentation": "Uneven tone or pigmentation, only if visible — otherwise note tone appears generally even",
+  "suggestedDirection": "Suggested professional treatment direction as a general category (e.g. hydrating facial, corrective peel, congestion-focused treatment) — never a specific product or prescription",
+  "nextStep": "A warm, specific recommendation to schedule an in-person appointment to confirm these visual impressions"
 }
+
+Every field must reflect a real, specific-sounding observation grounded in the image — never a placeholder sentence like "your skin may benefit from a professional consultation" used as a stand-in for actual content.
 `.trim();
 
 function isValidEmail(email) {
@@ -72,6 +88,19 @@ function escapeHtml(str) {
   }[c]));
 }
 
+// Exact label phrasing as specified — used both in the string sent to the
+// widget and (via buildAnalysisHtml) in the lead email.
+const ANALYSIS_SECTIONS = [
+  ["overall", "Overall visible skin impression"],
+  ["hydration", "Hydration / dryness signs"],
+  ["congestion", "Congestion / blackheads"],
+  ["texture", "Texture / pore appearance"],
+  ["redness", "Redness or sensitivity signs"],
+  ["pigmentation", "Uneven tone / pigmentation"],
+  ["suggestedDirection", "Suggested professional treatment direction"],
+  ["nextStep", "Recommended next step"],
+];
+
 async function callVisionAPI(imageDataUrl) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return { ok: false, reason: "OPENAI_API_KEY not configured" };
@@ -86,14 +115,14 @@ async function callVisionAPI(imageDataUrl) {
       body: JSON.stringify({
         model: "gpt-4o",
         temperature: 0.4,
-        max_tokens: 600,
+        max_tokens: 700,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           {
             role: "user",
             content: [
-              { type: "text", text: "Provide a preliminary visual skin impression for this selfie, following all rules exactly." },
+              { type: "text", text: "Provide a preliminary visual skin impression for this selfie, following all rules exactly. Fill in every field with a specific observation about this image." },
               { type: "image_url", image_url: { url: imageDataUrl } },
             ],
           },
@@ -109,35 +138,47 @@ async function callVisionAPI(imageDataUrl) {
 
     const data = await openaiRes.json();
     const content = data.choices?.[0]?.message?.content || "{}";
-    return { ok: true, analysis: JSON.parse(content) };
+    const parsed = JSON.parse(content);
+
+    // Make sure every required field is present and non-empty before calling it a success.
+    const hasAllFields = ANALYSIS_SECTIONS.every(([key]) => parsed[key] && String(parsed[key]).trim());
+    if (!hasAllFields) {
+      console.error("OpenAI response missing required fields:", parsed);
+      return { ok: false, reason: "Incomplete analysis returned" };
+    }
+
+    return { ok: true, analysis: parsed };
   } catch (err) {
     console.error("OpenAI call threw:", err);
     return { ok: false, reason: "Unexpected error calling vision API" };
   }
 }
 
-function buildAnalysisHtml(analysis) {
-  if (!analysis) {
+// Flatten the structured OpenAI object into ONE plain-text string, with each
+// section labeled. This is the single source of truth for what the widget
+// displays AND what gets dropped into the lead email — so there's no risk of
+// the frontend looking for a field name (report/result/message/aiAnalysis/etc.)
+// that the backend isn't actually sending.
+function formatAnalysisAsText(analysis) {
+  if (!analysis) return null;
+  return ANALYSIS_SECTIONS
+    .filter(([key]) => analysis[key])
+    .map(([key, label]) => `${label}: ${analysis[key]}`)
+    .join("\n\n");
+}
+
+function buildAnalysisHtml(analysisText) {
+  if (!analysisText) {
     return "<p><em>AI analysis was not available at submission time — please review the attached selfie manually.</em></p>";
   }
-  const rows = [
-    ["Overall Visible Condition", analysis.overall],
-    ["Hydration / Dryness", analysis.hydration],
-    ["Congestion", analysis.congestion],
-    ["Texture", analysis.texture],
-    ["Redness / Sensitivity", analysis.redness],
-    ["Pigmentation / Tone", analysis.pigmentation],
-    ["Pores", analysis.pores],
-    ["Suggested Treatment Direction", analysis.suggestedDirection],
-    ["Recommendation", analysis.recommendation],
-  ].filter(([, v]) => v);
-
-  return rows
-    .map(([label, v]) => `<p><strong>${escapeHtml(label)}:</strong> ${escapeHtml(v)}</p>`)
+  // Each "Label: content" section (separated by a blank line) becomes its own paragraph.
+  return analysisText
+    .split("\n\n")
+    .map((section) => `<p>${escapeHtml(section).replace(/^([^:]+):/, "<strong>$1:</strong>")}</p>`)
     .join("\n");
 }
 
-async function sendLeadEmail({ name, phone, email, submittedAt, analysis, analysisOk, imageDataUrl }) {
+async function sendLeadEmail({ name, phone, email, submittedAt, analysisText, analysisOk, imageDataUrl }) {
   const apiKey = getEmailApiKey();
   const toEmail = process.env.LEAD_EMAIL_TO || "info@skinartaesthetics.com";
   if (!apiKey) {
@@ -154,8 +195,8 @@ async function sendLeadEmail({ name, phone, email, submittedAt, analysis, analys
     <p><strong>Submitted:</strong> ${escapeHtml(submittedAt)}</p>
     <p><strong>Selfie:</strong> attached to this email.</p>
     <hr>
-    <h3>AI Preliminary Skin Analysis</h3>
-    ${buildAnalysisHtml(analysis)}
+    <h3>Full AI Preliminary Skin Analysis</h3>
+    ${buildAnalysisHtml(analysisText)}
     ${!analysisOk ? "<p><em>Note: instant AI analysis was unavailable for this submission — please follow up personally.</em></p>" : ""}
     <hr>
     <p><strong>Recommended follow-up action:</strong> Contact the client to schedule an in-person consultation and confirm visual impressions.</p>
@@ -198,7 +239,7 @@ async function sendLeadEmail({ name, phone, email, submittedAt, analysis, analys
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
+    res.status(405).json({ success: false, error: "Method not allowed" });
     return;
   }
 
@@ -214,13 +255,15 @@ export default async function handler(req, res) {
     errors.push("A selfie image is required.");
   }
   if (errors.length) {
-    res.status(400).json({ error: "Validation failed", details: errors });
+    res.status(400).json({ success: false, error: "Validation failed", details: errors });
     return;
   }
 
   // ---- AI vision analysis (server-side only — key never touches the browser) ----
   const visionResult = await callVisionAPI(image);
-  const analysis = visionResult.ok ? visionResult.analysis : null;
+  // Normalize to a single string field, "analysis" — this is the ONLY shape
+  // the frontend (and the lead email) ever has to read.
+  const analysisText = visionResult.ok ? formatAnalysisAsText(visionResult.analysis) : null;
 
   // ---- Lead email (best-effort: still sent even if AI analysis failed, so no lead is lost) ----
   const submittedAt = fmtDate(new Date());
@@ -229,14 +272,15 @@ export default async function handler(req, res) {
     phone: String(phone).trim(),
     email: String(email).trim(),
     submittedAt,
-    analysis,
-    analysisOk: visionResult.ok,
+    analysisText,
+    analysisOk: visionResult.ok && !!analysisText,
     imageDataUrl: image,
   });
 
   res.status(200).json({
-    analysis,
-    analysisAvailable: visionResult.ok,
+    success: true,
+    analysisAvailable: visionResult.ok && !!analysisText,
+    analysis: analysisText,
     emailSent: emailResult.sent,
   });
 }

@@ -264,11 +264,49 @@
 .ai-upload-actions {
   display: flex;
   gap: .6em;
-  margin-bottom: 1em;
+  margin-bottom: .6em;
 }
 .ai-upload-actions .ai-btn { font-size: .82rem; padding: .7em 1em; }
 
-#ai-selfie-input, #ai-selfie-input-camera { display: none; }
+.ai-upload-hint {
+  font-size: .76rem;
+  color: var(--gold-light);
+  margin: 0 0 1em;
+  line-height: 1.4;
+}
+
+/* Visually hidden (not display:none) — display:none file inputs are unreliable
+   for triggering the native camera prompt on some mobile browsers. */
+#ai-selfie-input, #ai-selfie-input-camera {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.ai-camera-live {
+  margin-bottom: 1em;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--cream);
+  background: #000;
+}
+.ai-camera-live video {
+  width: 100%;
+  max-height: 320px;
+  display: block;
+  object-fit: cover;
+  transform: scaleX(-1); /* mirror the front camera preview */
+}
+.ai-camera-actions {
+  display: flex;
+  gap: .6em;
+  padding: .7em;
+  background: var(--white);
+}
+.ai-camera-actions .ai-btn { flex: 1; font-size: .82rem; padding: .7em 1em; }
 
 .ai-preview-wrap {
   position: relative;
