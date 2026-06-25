@@ -239,8 +239,12 @@ nav.main-nav a.active { color: var(--gold-light); }
 nav.main-nav a:hover { color: var(--gold-light); }
 
 @media (max-width: 1080px) {
-  .nav-wrap { grid-template-columns: auto 1fr; padding: 1em 18px; }
-  .nav-wrap .logo { grid-column: 1; justify-self: start; }
+  /* minmax(0, ...) lets each track shrink below its content's natural
+     width instead of "blowing out" the row when the logo text and the CTA
+     buttons can't both fit at full size — without this, narrow phones were
+     pushing the buttons past the right edge of the screen. */
+  .nav-wrap { grid-template-columns: minmax(0, auto) minmax(0, 1fr); padding: 1em 18px; }
+  .nav-wrap .logo { grid-column: 1; justify-self: start; min-width: 0; }
   .nav-wrap .nav-cta { grid-column: 2; justify-self: end; }
   .logo-img { height: 70px; }
   .logo-text { font-size: 30px; }
@@ -271,6 +275,21 @@ nav.main-nav a:hover { color: var(--gold-light); }
   }
   nav.main-nav a.active { color: var(--gold); }
   .menu-toggle { display: block; }
+}
+
+@media (max-width: 480px) {
+  /* Phone-width header: shrink the logo and CTA buttons enough that the
+     logo and "Book Consultation" reliably sit on the same row without the
+     buttons getting pushed off the right edge of the screen. */
+  .nav-wrap { padding: .85em 14px; }
+  .logo { gap: .6em; }
+  .logo-img { height: 46px; }
+  .logo-text { font-size: 19px; }
+  .logo-text .logo-script { font-size: 21px; }
+  .logo-text, .logo-text .logo-script { overflow-wrap: anywhere; }
+  .nav-cta { gap: .35em; }
+  .nav-cta .btn { padding: .25em .8em; font-size: .56rem; letter-spacing: .08em; overflow-wrap: anywhere; }
+  .nav-social a { width: 19px; height: 19px; }
 }
 
 /* ---------- Hero ---------- */

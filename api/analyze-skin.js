@@ -14,10 +14,13 @@
      LEAD_EMAIL_TO    — defaults to info@skinartaesthetics.com if unset
 
    Response shape (the frontend always has `analysis` to fall back on; the
-   two newer fields are additive and let the widget render a nicer, sectioned
-   result, but nothing breaks if a caller only ever reads `analysis`):
+   newer fields are additive and let the widget render a nicer, sectioned
+   result — or a photo-retake prompt — but nothing breaks if a caller only
+   ever reads `analysis`):
      {
-       success: true,
+       success: true|false,        // false only for the needsRetake case below
+       needsRetake: true|false,    // true if the photo itself wasn't usable
+       reason: "Soft, client-facing explanation of why a retake helps" | null,
        analysisAvailable: true|false,
        analysis: "Full AI-generated skin analysis + treatment match report,
                    as one formatted string with labeled sections" | null,
@@ -31,8 +34,19 @@
          fellBack: true|false   // true if we couldn't confidently match —
                                  // primaryName will be a safe general pick
        } | null,
-       emailSent: true|false
+       emailSent: true|false   // always false when needsRetake is true —
+                                // the lead email is only sent once a usable
+                                // photo has actually been analyzed
      }
+
+   PHOTO QUALITY CHECK: before any findings/treatment match are built, the
+   model's own "imageQuality" field (cross-checked by detectPoorImageQuality()
+   below) decides whether the photo is too dark, too blurry, too far away,
+   too cropped, too angled, filtered, or obstructed (makeup/sunglasses/mask/
+   hair) to give a reliable read. If so, the response short-circuits with
+   needsRetake: true and a soft, client-friendly `reason` — never the words
+   "bad", "rejected", or "failed" — and the lead email is skipped until a
+   usable photo comes through.
 
    Internally OpenAI is asked for structured JSON (one field per section) so
    the model stays on-topic and every section is guaranteed to be filled in.
@@ -77,6 +91,10 @@ STRICT RULES — never violate these:
 - Use only soft, observational phrasing such as: "appears", "may suggest", "visible signs of", "could benefit from", "based on the image provided", "preliminary match", "your esthetician will confirm in person".
 - Tone: warm, calm, boutique, professional, encouraging — never salesy or robotic.
 
+IMAGE QUALITY CHECK — assess this first, before forming any skin impression. Consider all of the following: is the face clearly visible; is the image sharp enough (not blurry/out of focus); is the lighting bright enough (not too dark, not overexposed/blown out); is the face too far away or too heavily cropped to see skin detail; was the photo taken at a strong/extreme angle rather than facing the camera; does the photo look filtered or heavily edited; and is makeup, sunglasses, a mask, or hair covering too much of the visible skin to assess it.
+- If, taking all of the above into account, you genuinely cannot get a usable read of the visible skin (not just "a little uncertain" — truly not enough visible skin detail to assess), set "imageQuality" to "poor" and "imageQualityReason" to one short, kind, plain-English sentence naming the specific issue and how to fix it. Always use soft, encouraging phrasing — never the words "bad", "rejected", "failed", or "poor quality image". Good examples: "This photo may not show enough visible skin detail in natural light for a reliable read." / "A clearer, closer shot facing the camera directly will help us give you a better preliminary review." / "The photo appears quite dark, so a brighter, more evenly lit shot would help with accuracy." Still fill in every other field as generally and cautiously as possible, and set "confidentMatch" to false.
+- Otherwise set "imageQuality" to "good" and "imageQualityReason" to an empty string — even if some individual findings are a little uncertain, use "confidentMatch": false for that milder case instead of flagging the image itself.
+
 TREATMENT MATCHING — you must pick from this exact SkinArt Aesthetics menu only. Never invent, rename, or suggest anything not on this list. Items marked [AGGRESSIVE] are peels or microneedling:
 ${catalogForPrompt()}
 
@@ -91,6 +109,8 @@ TREATMENT MATCHING RULES:
 
 Respond ONLY with strict JSON in this exact shape (every text value is 1-3 full sentences, plain strings, written directly to the client — specific to what is visible in THIS photo, never generic boilerplate):
 {
+  "imageQuality": "good" or "poor",
+  "imageQualityReason": "One short, kind sentence if poor (never use the words bad, rejected, or failed), otherwise an empty string",
   "overall": "Overall visible skin impression",
   "hydration": "Hydration / dryness signs",
   "congestion": "Congestion or blackheads, only if visible — otherwise note that none appear visibly apparent",
@@ -132,6 +152,14 @@ function scrubBannedLanguage(text) {
     .replace(/\bprescription\s*recommendations?\b/gi, "professional in-person guidance")
     .replace(/\bprescription\b/gi, "professional")
     .replace(/\bexact skin age\b/gi, "skin's current appearance")
+    // Soft-language scrub for the photo-quality/retake feature — these words
+    // are explicitly banned from client-facing copy (too critical/embarrassing
+    // for a luxury, client-friendly tone), so rewrite them defensively even
+    // though the prompt already instructs the model not to use them.
+    .replace(/\bbad\s+photo\b/gi, "photo")
+    .replace(/\bpoor\s+quality\s+image\b/gi, "this photo")
+    .replace(/\brejected\b/gi, "not quite usable yet")
+    .replace(/\bfailed\b/gi, "wasn't quite usable")
     .replace(/\s{2,}/g, " ")
     .trim();
 }
@@ -153,6 +181,24 @@ function detectSensitivity(parsed) {
   const text = `${parsed.redness || ""} ${parsed.overall || ""}`.toLowerCase();
   const clauses = text.split(/[.;,]/);
   return clauses.some((clause) => SENSITIVITY_KEYWORDS_RE.test(clause) && !NEGATION_RE.test(clause));
+}
+
+// Heuristic, server-side image-quality check — same dual-signal pattern as
+// detectSensitivity() above: trust the model's own explicit "imageQuality"
+// flag when present, but fall back to scanning its "overall" text for a
+// plain-language quality complaint if the field is missing or malformed.
+// Lenient default — anything other than an explicit "poor" is treated as
+// usable, so a missing/garbled field never wrongly triggers a retake.
+const IMAGE_QUALITY_KEYWORDS_RE =
+  /(too dark|too blurry|blurr|out of focus|low resolution|poor lighting|not clear enough|can.?t be (assessed|determined)|difficult to assess|hard to assess|not enough visible skin|too far away|heavily cropped|strong angle|filtered|heavily edited|obstructed|not (clearly )?visible)/;
+function detectPoorImageQuality(parsed) {
+  if (parsed.imageQuality === "poor") return true;
+  if (parsed.imageQuality === "good") return false;
+  const text = String(parsed.overall || "").toLowerCase();
+  const clauses = text.split(/[.;,]/);
+  return clauses.some(
+    (clause) => IMAGE_QUALITY_KEYWORDS_RE.test(clause) && !NEGATION_RE.test(clause)
+  );
 }
 
 function pickSafePrimary(parsed) {
@@ -399,7 +445,7 @@ function buildTreatmentMatchHtml(match) {
   `;
 }
 
-async function sendLeadEmail({ name, phone, email, submittedAt, analysisText, analysisOk, treatmentMatch, imageDataUrl }) {
+async function sendLeadEmail({ name, phone, email, submittedAt, analysisText, analysisOk, treatmentMatch, imageDataUrl, photoQualityStatus }) {
   const apiKey = getEmailApiKey();
   const toEmail = process.env.LEAD_EMAIL_TO || "info@skinartaesthetics.com";
   if (!apiKey) {
@@ -415,6 +461,7 @@ async function sendLeadEmail({ name, phone, email, submittedAt, analysisText, an
     <p><strong>Email Address:</strong> ${escapeHtml(email)}</p>
     <p><strong>Submitted:</strong> ${escapeHtml(submittedAt)}</p>
     <p><strong>Selfie:</strong> attached to this email.</p>
+    <p><strong>Photo Quality Status:</strong> ${escapeHtml(photoQualityStatus || "Passed")}</p>
     <hr>
     <h3>AI Skin Analysis</h3>
     ${buildAnalysisHtml(analysisText)}
@@ -487,6 +534,47 @@ export default async function handler(req, res) {
   // ---- AI vision analysis (server-side only — key never touches the browser) ----
   const visionResult = await callVisionAPI(image);
 
+  const leadMeta = { name: String(name).trim(), email: String(email).trim(), phone: String(phone).trim() };
+
+  // ---- Photo quality check — runs before any findings/treatment match are
+  // built. If the photo itself isn't usable, we ask for a retake instead of
+  // producing a guessed analysis from an unclear image. This check only
+  // applies once the vision call actually succeeded (a missing API key or a
+  // genuine OpenAI error is a different, unrelated failure mode handled below).
+  const poorImageQuality = visionResult.ok && detectPoorImageQuality(visionResult.analysis);
+
+  if (poorImageQuality) {
+    const retakeReason =
+      scrubBannedLanguage(String(visionResult.analysis.imageQualityReason || "").trim()) ||
+      "This photo may not show enough visible skin detail for a reliable preliminary read — a clearer photo in natural light will help us give you a better review.";
+
+    // Per spec: do not send the lead email yet on a retake — the client
+    // hasn't completed a usable submission, so there's nothing for the
+    // esthetician to review. We still log the attempt for analytics.
+    await logEvent({
+      eventName: "photo_quality_failed",
+      pageUrl,
+      sessionId,
+      userAgent,
+      metadata: { ...leadMeta, reason: "poor_image_quality" },
+    });
+
+    res.status(200).json({
+      success: false,
+      needsRetake: true,
+      reason: retakeReason,
+      // Additive, backward-compatible fields — older widget code that only
+      // reads `analysisAvailable`/`analysis` degrades gracefully to its
+      // existing "instant results aren't ready" message instead of breaking.
+      analysisAvailable: false,
+      analysis: null,
+      findings: null,
+      treatmentMatch: null,
+      emailSent: false,
+    });
+    return;
+  }
+
   // The AI's raw treatment pick is never trusted directly — it's always run
   // through applyCatalogAndSafetyRules() first, which checks it against the
   // real treatments.html catalog and overrides anything unsafe (off-menu
@@ -518,7 +606,6 @@ export default async function handler(req, res) {
   // Per spec: record the lead's name/email/phone on AI-funnel events (the
   // form has already been submitted by this point in the flow) — but never
   // the selfie image or the full analysis text.
-  const leadMeta = { name: String(name).trim(), email: String(email).trim(), phone: String(phone).trim() };
   // Awaited (with its own internal error handling) so the event reliably
   // reaches the database before this serverless function exits — but a
   // failure here can only ever return ok:false, never throw.
@@ -529,8 +616,17 @@ export default async function handler(req, res) {
     userAgent,
     metadata: analysisOk ? leadMeta : { ...leadMeta, reason: visionResult.reason || "unknown" },
   });
+  // The photo itself passed the quality check whenever the vision call
+  // succeeded and didn't get flagged above — log this distinctly from the
+  // broader ai_analysis_* events so the quality-check funnel can be tracked
+  // on its own (photo_quality_passed vs. photo_quality_failed).
+  if (visionResult.ok) {
+    await logEvent({ eventName: "photo_quality_passed", pageUrl, sessionId, userAgent, metadata: leadMeta });
+  }
 
   // ---- Lead email (best-effort: still sent even if AI analysis failed, so no lead is lost) ----
+  // Note: this only runs once we're past the photo-quality gate above, so a
+  // lead whose photo needs a retake never gets a premature/incomplete email.
   const submittedAt = fmtDate(new Date());
   const emailResult = await sendLeadEmail({
     name: String(name).trim(),
@@ -541,6 +637,7 @@ export default async function handler(req, res) {
     analysisOk,
     treatmentMatch,
     imageDataUrl: image,
+    photoQualityStatus: visionResult.ok ? "Passed" : "Not assessed (analysis unavailable)",
   });
 
   // Email success/failure must never affect what the client sees — the AI
@@ -558,6 +655,8 @@ export default async function handler(req, res) {
 
   res.status(200).json({
     success: true,
+    needsRetake: false,
+    reason: null,
     analysisAvailable: analysisOk,
     analysis: analysisText,
     findings: findingsText,

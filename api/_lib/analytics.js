@@ -30,6 +30,10 @@ export const ALLOWED_EVENTS = [
   "contact_form_submitted",
   "treatment_page_view",
   "blog_read_more_clicked",
+  "photo_quality_passed",
+  "photo_quality_failed",
+  "photo_retake_clicked",
+  "photo_reuploaded",
 ];
 
 // Keys that should never end up in stored metadata, no matter what the

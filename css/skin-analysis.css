@@ -315,7 +315,11 @@
   overflow: hidden;
   border: 1px solid var(--cream);
 }
-.ai-preview-wrap img { width: 100%; display: block; max-height: 260px; object-fit: cover; }
+/* max-height matches .ai-camera-live video's 320px so the captured photo
+   shows the same framing/crop the user saw in the live camera preview —
+   previously this was shorter (260px), which cropped more off the bottom
+   than what was visible while taking the shot. */
+.ai-preview-wrap img { width: 100%; display: block; max-height: 320px; object-fit: cover; }
 .ai-preview-remove {
   position: absolute;
   top: 8px;
