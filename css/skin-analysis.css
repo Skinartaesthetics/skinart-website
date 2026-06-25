@@ -321,13 +321,23 @@
    the captured-photo preview, so they always match each other exactly and
    there's no leftover black gap below the video (which happened because the
    old max-height cap didn't reserve a definite box height on phones).
-   Desktop is untouched above. */
+   Desktop is untouched above.
+
+   The ratio goes on the <video> itself, NOT on .ai-camera-live — that outer
+   box also wraps the Capture/Cancel button row below the video, so forcing
+   IT to 4:5 with the video at height:100% left no room for the buttons and
+   overflow:hidden clipped them off-screen (Capture became unreachable). */
 @media (max-width: 600px) {
-  .ai-camera-live,
+  .ai-camera-live video {
+    aspect-ratio: 4 / 5;
+    width: 100%;
+    height: auto;
+    max-height: none;
+    object-fit: cover;
+  }
   .ai-preview-wrap {
     aspect-ratio: 4 / 5;
   }
-  .ai-camera-live video,
   .ai-preview-wrap img {
     width: 100%;
     height: 100%;
