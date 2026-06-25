@@ -370,12 +370,14 @@
       const vh = videoEl.videoHeight;
       if (!vw || !vh) return null;
 
-      // Measure the box's ACTUAL on-screen ratio right now, rather than
-      // assuming CAPTURE_ASPECT_RATIO — this is what makes capture match the
-      // preview on any phone/tablet/screen size, including the shorter ratio
-      // a small-viewport-height media query may switch to (e.g. landscape).
-      // Falls back to the constant only if layout hasn't happened yet.
-      const boxRect = liveArea.getBoundingClientRect();
+      // Measure the video element's ACTUAL on-screen ratio right now, rather
+      // than assuming CAPTURE_ASPECT_RATIO — this is what makes capture match
+      // the preview on any phone/tablet/screen size. Reads videoEl itself
+      // (not the .ai-camera-live container) since the container also wraps
+      // the Capture/Cancel buttons and isn't what's CSS-constrained to a
+      // fixed ratio. Falls back to the constant only if layout hasn't
+      // happened yet.
+      const boxRect = videoEl.getBoundingClientRect();
       const targetRatio =
         boxRect.width > 0 && boxRect.height > 0
           ? boxRect.width / boxRect.height
