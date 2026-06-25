@@ -267,6 +267,14 @@
   margin-bottom: .6em;
 }
 .ai-upload-actions .ai-btn { font-size: .82rem; padding: .7em 1em; }
+/* Without this, setting the `hidden` attribute via JS (uploadActions.hidden
+   = true, e.g. while the live camera or captured-photo confirm screen is
+   showing) has no visual effect — the `display: flex` rule above wins over
+   the browser's built-in `[hidden]{display:none}` because author CSS always
+   beats the default UA stylesheet, regardless of selector specificity. This
+   was causing "Take a Photo" / "Upload from Gallery" to stay visibly stacked
+   underneath the live camera box at all times. */
+.ai-upload-actions[hidden] { display: none; }
 
 .ai-upload-hint {
   font-size: .76rem;
