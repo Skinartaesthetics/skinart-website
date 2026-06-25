@@ -262,7 +262,6 @@ nav.main-nav a:hover { color: var(--gold-light); }
   }
   nav.main-nav a.active { color: var(--gold); }
   .menu-toggle { display: block; }
-  .nav-cta .btn { display: none; }
 }
 
 /* ---------- Hero ---------- */
@@ -322,6 +321,10 @@ nav.main-nav a:hover { color: var(--gold-light); }
 }
 .page-hero h1 { color: var(--cream-light); }
 .page-hero p { color: var(--line); }
+/* Eyebrow + script accents need a lighter, warmer tone on this dark
+   background — the standard --gold / .script brown is too low-contrast here. */
+.page-hero .eyebrow { color: var(--gold-light); }
+.page-hero h1 .script { color: #d9b98e; }
 
 /* ---------- Sections ---------- */
 section { padding: 4.5em 0; }
@@ -387,7 +390,9 @@ section { padding: 4.5em 0; }
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(46,40,35,.45), rgba(46,40,35,.6));
+  /* Darkened further so text stays legible no matter how bright the
+     underlying photo is in that spot. */
+  background: linear-gradient(180deg, rgba(20,17,14,.55), rgba(20,17,14,.72));
   z-index: 1;
 }
 .img-banner .banner-text {
@@ -397,8 +402,19 @@ section { padding: 4.5em 0; }
   max-width: 620px;
   padding: 0 28px;
 }
-.img-banner .banner-text .script { color: #8c6d52; font-size: 2rem; display: block; margin-bottom: .2em; }
-.img-banner .banner-text p { color: var(--line); margin: 0; }
+/* Lighter gold + a soft shadow so the script accent reads clearly against
+   any photo, not just the darkest parts of it. */
+.img-banner .banner-text .script {
+  color: #d9b98e;
+  font-size: 2rem;
+  display: block;
+  margin-bottom: .2em;
+  text-shadow: 0 2px 10px rgba(0,0,0,.55);
+}
+.img-banner .banner-text p { color: var(--line); margin: 0; text-shadow: 0 1px 6px rgba(0,0,0,.4); }
+@media (max-width: 600px) {
+  .img-banner { min-height: 480px; }
+}
 
 /* ---------- Scroll reveal ---------- */
 .reveal { opacity: 0; transform: translateY(20px); transition: opacity .7s ease, transform .7s ease; }
