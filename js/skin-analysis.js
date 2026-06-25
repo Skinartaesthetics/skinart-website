@@ -39,6 +39,8 @@
     imageDataUrl: null,
     imageFile: null,
     analysis: null,
+    findings: null,
+    treatmentMatch: null,
     scheduleClicked: false,
   };
 
@@ -381,6 +383,8 @@
 
   async function runAnalysis() {
     let analysis = null;
+    let findings = null;
+    let treatmentMatch = null;
 
     // Single call to our own serverless endpoint — it validates the lead's
     // info, calls OpenAI server-side, emails the lead to the studio, and
@@ -399,19 +403,26 @@
       });
 
       const data = await res.json();
-      // The backend always normalizes the report to ONE string field: analysis.
-      // (Regardless of what it might be called internally — report/result/
-      // message/aiAnalysis — the widget only ever reads `data.analysis`.)
+      // The backend always normalizes the full report to ONE string field:
+      // analysis — that's the fallback this widget can always render from.
+      // `findings` and `treatmentMatch` are newer, additive fields that let
+      // renderResults() show a nicer, sectioned layout when present; if
+      // they're ever missing (e.g. an older deploy), the widget still works
+      // off `analysis` alone.
       if (!res.ok || !data.analysisAvailable || !data.analysis || typeof data.analysis !== "string") {
         console.error("Analyze-skin endpoint returned no usable analysis:", data);
       } else {
         analysis = data.analysis;
+        findings = typeof data.findings === "string" ? data.findings : null;
+        treatmentMatch = data.treatmentMatch && typeof data.treatmentMatch === "object" ? data.treatmentMatch : null;
       }
     } catch (err) {
       console.error("Analyze-skin request failed:", err);
     }
 
     state.analysis = analysis;
+    state.findings = findings;
+    state.treatmentMatch = treatmentMatch;
     state.step = "results";
     render();
   }
@@ -435,24 +446,90 @@
       .filter(Boolean);
   }
 
-  function renderResults() {
-    const sections = parseAnalysisSections(state.analysis);
-    const hasReport = sections.length > 0;
+  // Renders the "Your SkinArt Treatment Match" card — primary match, why it
+  // may fit, up to 2 secondary options, and the recommended next step. Only
+  // called when the backend sent a valid treatmentMatch object.
+  function renderTreatmentMatchHtml(match) {
+    const secondary = Array.isArray(match.secondary) ? match.secondary : [];
+    const secondaryHtml = secondary.length
+      ? `
+        <div class="ai-treatment-secondary">
+          <h4>Secondary Options</h4>
+          <ul>
+            ${secondary
+              .map((s) => `<li><strong>${escapeHtml(s.name)}</strong> — ${escapeHtml(s.reason)}</li>`)
+              .join("")}
+          </ul>
+        </div>
+      `
+      : "";
 
-    const reportHtml = hasReport
-      ? sections
-          .map(([label, content]) => `
-            <div class="ai-result-section">
-              <h4>${escapeHtml(label)}</h4>
-              <p>${escapeHtml(content)}</p>
-            </div>
-          `)
-          .join("")
-      : `<div class="ai-error-box">Instant results aren't quite ready yet on our end — but don't worry, your photo and details have already been sent to our team. An esthetician will personally review your submission and follow up with recommendations.</div>`;
+    return `
+      <div class="ai-treatment-match">
+        <h3>Your SkinArt Treatment Match</h3>
+        <div class="ai-treatment-primary">
+          <div class="ai-treatment-label">${match.fellBack ? "Suggested Starting Point" : "Primary Match"}</div>
+          <div class="ai-treatment-name">${escapeHtml(match.primaryName)}</div>
+        </div>
+        <div class="ai-treatment-why">
+          <h4>Why This Treatment May Fit</h4>
+          <p>${escapeHtml(match.primaryReason)}</p>
+        </div>
+        ${secondaryHtml}
+        <div class="ai-treatment-next">
+          <h4>Recommended Next Step</h4>
+          <p>${escapeHtml(match.nextStep)}</p>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderResults() {
+    const hasTreatmentMatch = !!(state.treatmentMatch && state.treatmentMatch.primaryName);
+
+    let reportHtml;
+    if (hasTreatmentMatch) {
+      // Newer, sectioned layout: findings grouped under their own heading,
+      // then a dedicated treatment-match card.
+      const findingsSections = parseAnalysisSections(state.findings || state.analysis);
+      const findingsHtml = findingsSections.length
+        ? findingsSections
+            .map(([label, content]) => `
+              <div class="ai-result-section">
+                <h4>${escapeHtml(label)}</h4>
+                <p>${escapeHtml(content)}</p>
+              </div>
+            `)
+            .join("")
+        : "";
+
+      reportHtml = `
+        <h3>Your Preliminary Skin Findings</h3>
+        ${findingsHtml}
+        ${renderTreatmentMatchHtml(state.treatmentMatch)}
+      `;
+    } else {
+      // Fallback: original generic rendering, unchanged — used if the AI
+      // analysis wasn't available or the backend didn't send a treatment
+      // match for some reason. This path is intentionally identical to the
+      // widget's original behavior so nothing breaks.
+      const sections = parseAnalysisSections(state.analysis);
+      const hasReport = sections.length > 0;
+      reportHtml = hasReport
+        ? `<h3>Your Preliminary Results</h3>` +
+          sections
+            .map(([label, content]) => `
+              <div class="ai-result-section">
+                <h4>${escapeHtml(label)}</h4>
+                <p>${escapeHtml(content)}</p>
+              </div>
+            `)
+            .join("")
+        : `<h3>Your Preliminary Results</h3><div class="ai-error-box">Instant results aren't quite ready yet on our end — but don't worry, your photo and details have already been sent to our team. An esthetician will personally review your submission and follow up with recommendations.</div>`;
+    }
 
     bodyEl.innerHTML = `
       <div class="ai-step">
-        <h3>Your Preliminary Results</h3>
         ${reportHtml}
 
         <p style="font-size:.85rem;">Ready for a professional skin plan? Schedule your appointment and let's create a treatment protocol designed around your skin.</p>
