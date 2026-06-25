@@ -243,17 +243,18 @@ nav.main-nav a:hover { color: var(--gold-light); }
      width instead of "blowing out" the row when the logo text and the CTA
      buttons can't both fit at full size — without this, narrow phones were
      pushing the buttons past the right edge of the screen. */
-  .nav-wrap { grid-template-columns: minmax(0, auto) minmax(0, 1fr); padding: 1em 18px; align-items: flex-start; }
-  .nav-wrap .logo { grid-column: 1; justify-self: start; min-width: 0; }
+  .nav-wrap { grid-template-columns: minmax(0, auto) minmax(0, 1fr); padding: 1em 18px; align-items: stretch; }
+  .nav-wrap .logo { grid-column: 1; justify-self: start; min-width: 0; height: 100%; }
   .nav-wrap .nav-cta { grid-column: 2; justify-self: end; }
-  /* Tighter line-height + a smaller logo lockup so the logo's overall height
-     roughly matches the height of the two stacked CTA buttons above the
-     social icons. Combined with `align-items: flex-start` above, this keeps
-     the top of the logo close to the top of "Book Consultation" and the
-     bottom of the logo close to the bottom of "Schedule an Appointment". */
-  .logo-img { height: 54px; }
-  .logo-text { font-size: 25px; line-height: 1.1; }
-  .logo-text .logo-script { font-size: 28px; }
+  /* `align-items: stretch` above makes the logo's grid cell exactly as tall
+     as the nav-cta column (its 2 stacked buttons + social icons + the
+     hamburger menu button below them, since that's the taller column).
+     Sizing .logo-img to height:100% then makes the logo image's own top/
+     bottom land exactly at the top of "Book Consultation" and the bottom of
+     the hamburger button, rather than an estimated fixed pixel height. */
+  .logo-img { height: 100%; width: auto; max-width: 150px; }
+  .logo-text { font-size: 36px; line-height: 1.05; }
+  .logo-text .logo-script { font-size: 40px; }
   .nav-cta { flex-direction: column; align-items: flex-end; gap: .5em; }
   .nav-cta .btn { white-space: normal; text-align: center; }
   .nav-social { justify-content: flex-end; }
@@ -283,14 +284,16 @@ nav.main-nav a:hover { color: var(--gold-light); }
 }
 
 @media (max-width: 480px) {
-  /* Phone-width header: shrink the logo and CTA buttons enough that the
-     logo and "Book Consultation" reliably sit on the same row without the
-     buttons getting pushed off the right edge of the screen. */
+  /* Phone-width header: shrink the CTA buttons enough that the logo and
+     "Book Consultation" reliably sit on the same row without the buttons
+     getting pushed off the right edge of the screen. The logo image still
+     stretches to height:100% (inherited from the 1080px breakpoint above)
+     so it keeps matching the nav-cta column's full height at this width too. */
   .nav-wrap { padding: .85em 14px; }
   .logo { gap: .6em; }
-  .logo-img { height: 46px; }
-  .logo-text { font-size: 19px; }
-  .logo-text .logo-script { font-size: 21px; }
+  .logo-img { max-width: 110px; }
+  .logo-text { font-size: 26px; }
+  .logo-text .logo-script { font-size: 29px; }
   .logo-text, .logo-text .logo-script { overflow-wrap: anywhere; }
   .nav-cta { gap: .35em; }
   .nav-cta .btn { padding: .25em .8em; font-size: .56rem; letter-spacing: .08em; overflow-wrap: anywhere; }
