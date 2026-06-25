@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- Google tag (gtag.js) - GA4 - SkinArt Aesthetics main site only -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-WZC5FNJ3BG"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  // anonymize_ip and no cross-domain "linker" config on purpose — this site
+  // and the external GlossGenius booking domain must stay two separate
+  // GA4 properties/sessions, never merged into one.
+  gtag('config', 'G-WZC5FNJ3BG');
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Contact &amp; Book | Skinart Aesthetics</title>
@@ -67,6 +78,7 @@
       <div class="row">
         <strong>Address</strong>
         <p>2337 Philmont Ave, Suite 203D<br>Huntingdon Valley, PA 19006</p>
+        <p><a id="directions-link" href="https://www.google.com/maps/dir/?api=1&amp;destination=2337+Philmont+Ave+Suite+203D%2C+Huntingdon+Valley%2C+PA+19006" target="_blank" rel="noopener">Get Directions</a></p>
       </div>
       <div class="row">
         <strong>Phone</strong>
@@ -195,5 +207,6 @@
 <script src="js/main.js"></script>
 <script src="js/analytics.js"></script>
 <script src="js/skin-analysis.js"></script>
+<script src="js/ga4-events.js"></script>
 </body>
 </html>

@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- Google tag (gtag.js) - GA4 - SkinArt Aesthetics main site only -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-WZC5FNJ3BG"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  // anonymize_ip and no cross-domain "linker" config on purpose — this site
+  // and the external GlossGenius booking domain must stay two separate
+  // GA4 properties/sessions, never merged into one.
+  gtag('config', 'G-WZC5FNJ3BG');
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Treatments &amp; Pricing | Skinart Aesthetics</title>
@@ -395,5 +406,6 @@
 <script src="js/main.js"></script>
 <script src="js/analytics.js"></script>
 <script src="js/skin-analysis.js"></script>
+<script src="js/ga4-events.js"></script>
 </body>
 </html>

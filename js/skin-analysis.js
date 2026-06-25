@@ -413,11 +413,46 @@
         });
         activeCameraStream = stream;
         videoEl.srcObject = stream;
+        // Some mobile browsers (notably iOS Safari) don't reliably start
+        // decoding frames from the `autoplay` attribute alone when
+        // `srcObject` is assigned programmatically — calling play()
+        // explicitly (the video is muted, so this is allowed without a
+        // fresh user gesture) makes sure a real frame is actually being
+        // decoded before the client can tap Capture. Without this, Capture
+        // could silently grab a blank frame on some devices even though
+        // the preview box itself was already visible.
+        try { await videoEl.play(); } catch (playErr) { /* autoplay likely already running */ }
         liveArea.hidden = false;
         uploadActions.hidden = true;
       } catch (err) {
         cameraInput.click();
       }
+    }
+
+    // Resolves once the live video actually has a decoded frame ready to
+    // draw (readyState >= HAVE_CURRENT_DATA and a real pixel size). Without
+    // this guard, tapping Capture right as the preview appears can hit a
+    // video element that has a stream attached but hasn't decoded its
+    // first frame yet — drawImage() on that video produces a blank/garbage
+    // canvas (or throws on some browsers), which looks exactly like
+    // "Capture does nothing."
+    function waitForVideoFrame(timeoutMs) {
+      return new Promise((resolve) => {
+        if (videoEl.readyState >= 2 && videoEl.videoWidth > 0) {
+          resolve();
+          return;
+        }
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          videoEl.removeEventListener("loadeddata", finish);
+          clearTimeout(timer);
+          resolve();
+        };
+        videoEl.addEventListener("loadeddata", finish);
+        const timer = setTimeout(finish, timeoutMs);
+      });
     }
 
     // Shows the just-captured frame with "Use This Photo" / "Retake Photo"
@@ -449,14 +484,53 @@
     bodyEl.querySelector("#ai-camera-btn").addEventListener("click", openLiveCamera);
     bodyEl.querySelector("#ai-library-btn").addEventListener("click", () => libraryInput.click());
 
-    bodyEl.querySelector("#ai-camera-capture-btn").addEventListener("click", () => {
-      // Crop to the same frame the client just saw in the live preview (see
-      // captureCroppedFrame's comment + CAPTURE_ASPECT_RATIO above) instead
-      // of grabbing the full raw camera stream.
-      const dataUrl = captureCroppedFrame(videoEl);
-      stopActiveCamera();
-      liveArea.hidden = true;
-      showCaptureConfirm(dataUrl);
+    // Shows a calm inline message in the live-camera box if Capture can't
+    // get a real frame yet, instead of the button silently doing nothing.
+    function showCameraCaptureError() {
+      let errEl = liveArea.querySelector(".ai-camera-error");
+      if (!errEl) {
+        errEl = document.createElement("p");
+        errEl.className = "ai-camera-error";
+        errEl.style.fontSize = ".85rem";
+        errEl.style.margin = ".6em 0 0";
+        liveArea.insertBefore(errEl, liveArea.querySelector(".ai-camera-actions"));
+      }
+      errEl.textContent = "We couldn't capture a photo just yet — please make sure the camera preview is visible, then tap Capture again.";
+    }
+
+    const captureBtn = bodyEl.querySelector("#ai-camera-capture-btn");
+    captureBtn.addEventListener("click", async () => {
+      // BUG FIX: this handler used to call captureCroppedFrame() immediately
+      // on click, without ever calling the waitForVideoFrame() guard defined
+      // above. On devices where the live <video> hadn't decoded its first
+      // real frame yet (a known mobile Safari timing issue when assigning
+      // `srcObject` programmatically), videoEl.videoWidth/videoHeight were
+      // still 0, and canvas drawImage() throws in that case — silently,
+      // since there was no try/catch here. That uncaught error is exactly
+      // why "Capture" looked like it did nothing: the click fired, the
+      // frame was never actually drawn, and showCaptureConfirm() never ran.
+      // Now we explicitly await a real decoded frame first, guard against a
+      // still-zero video size, and surface a clear retry message instead of
+      // failing silently.
+      if (captureBtn.disabled) return;
+      captureBtn.disabled = true;
+      try {
+        await waitForVideoFrame(1500);
+        if (!videoEl.videoWidth || !videoEl.videoHeight) {
+          throw new Error("Camera frame not ready yet");
+        }
+        // Crop to the same frame the client just saw in the live preview
+        // (see captureCroppedFrame's comment + CAPTURE_ASPECT_RATIO above)
+        // instead of grabbing the full raw camera stream.
+        const dataUrl = captureCroppedFrame(videoEl);
+        stopActiveCamera();
+        liveArea.hidden = true;
+        showCaptureConfirm(dataUrl);
+      } catch (err) {
+        console.error("Photo capture failed:", err);
+        showCameraCaptureError();
+        captureBtn.disabled = false;
+      }
     });
 
     bodyEl.querySelector("#ai-camera-cancel-btn").addEventListener("click", stopLiveCamera);

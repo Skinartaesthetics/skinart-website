@@ -243,12 +243,17 @@ nav.main-nav a:hover { color: var(--gold-light); }
      width instead of "blowing out" the row when the logo text and the CTA
      buttons can't both fit at full size — without this, narrow phones were
      pushing the buttons past the right edge of the screen. */
-  .nav-wrap { grid-template-columns: minmax(0, auto) minmax(0, 1fr); padding: 1em 18px; }
+  .nav-wrap { grid-template-columns: minmax(0, auto) minmax(0, 1fr); padding: 1em 18px; align-items: flex-start; }
   .nav-wrap .logo { grid-column: 1; justify-self: start; min-width: 0; }
   .nav-wrap .nav-cta { grid-column: 2; justify-self: end; }
-  .logo-img { height: 70px; }
-  .logo-text { font-size: 30px; }
-  .logo-text .logo-script { font-size: 34px; }
+  /* Tighter line-height + a smaller logo lockup so the logo's overall height
+     roughly matches the height of the two stacked CTA buttons above the
+     social icons. Combined with `align-items: flex-start` above, this keeps
+     the top of the logo close to the top of "Book Consultation" and the
+     bottom of the logo close to the bottom of "Schedule an Appointment". */
+  .logo-img { height: 54px; }
+  .logo-text { font-size: 25px; line-height: 1.1; }
+  .logo-text .logo-script { font-size: 28px; }
   .nav-cta { flex-direction: column; align-items: flex-end; gap: .5em; }
   .nav-cta .btn { white-space: normal; text-align: center; }
   .nav-social { justify-content: flex-end; }
