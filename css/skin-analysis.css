@@ -292,16 +292,10 @@
   overflow: hidden;
   border: 1px solid var(--cream);
   background: #000;
-  /* Fixed aspect-ratio box (matches CAPTURE_ASPECT_RATIO in skin-analysis.js)
-     so the live preview frames the shot identically on mobile and desktop —
-     previously this only had a max-height cap, which let mobile's native
-     (often much taller) camera stream get squished/cropped inconsistently
-     between what was previewed and what actually got captured. */
-  aspect-ratio: 4 / 5;
 }
 .ai-camera-live video {
   width: 100%;
-  height: 100%;
+  max-height: 320px;
   display: block;
   object-fit: cover;
   transform: scaleX(-1); /* mirror the front camera preview */
@@ -320,27 +314,25 @@
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid var(--cream);
-  /* Same 4:5 box as .ai-camera-live so the saved/previewed photo always
-     matches the framing shown in the live camera preview, on every device. */
-  aspect-ratio: 4 / 5;
 }
-.ai-preview-wrap img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.ai-preview-wrap img { width: 100%; display: block; max-height: 320px; object-fit: cover; }
 
-/* On short viewports (small phones in landscape, or any device where the
-   chat panel's ~88vh max-height leaves little room) a 4:5 box can push the
-   Capture/Cancel buttons out of view. Switch to a shorter ratio there —
-   skin-analysis.js measures the box's real on-screen ratio at capture time,
-   so the saved photo always matches whichever ratio is actually showing. */
-@media (max-height: 650px) {
+/* Mobile only: fixed 4:5 portrait box for both the live camera preview and
+   the captured-photo preview, so they always match each other exactly and
+   there's no leftover black gap below the video (which happened because the
+   old max-height cap didn't reserve a definite box height on phones).
+   Desktop is untouched above. */
+@media (max-width: 600px) {
   .ai-camera-live,
   .ai-preview-wrap {
-    aspect-ratio: 4 / 3;
+    aspect-ratio: 4 / 5;
   }
-}
-@media (max-height: 480px) {
-  .ai-camera-live,
-  .ai-preview-wrap {
-    aspect-ratio: 1 / 1;
+  .ai-camera-live video,
+  .ai-preview-wrap img {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    object-fit: cover;
   }
 }
 .ai-preview-remove {
