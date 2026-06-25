@@ -316,38 +316,56 @@
   /* ---------------- Step 4: Selfie upload ---------------- */
   function renderUpload(dots) {
     stopActiveCamera();
+
+    // A backend photo-quality flag (needsRetake, set in runAnalysis()) routes
+    // back to this same step with contact info intact and only the image
+    // cleared — "Take a Photo" / "Upload from Gallery" below already double
+    // as "Retake Photo" / "Upload Different Photo", so we just show a
+    // one-time soft notice instead of a whole separate screen.
+    const retakeNoticeHtml = state.needsRetake
+      ? `<div class="ai-disclaimer-box" style="margin-bottom:1em;">${escapeHtml(
+          state.retakeReason ||
+            "Let's retake this for a clearer analysis. Please take or upload a new selfie in natural light, facing the camera directly."
+        )}</div>`
+      : "";
+    state.needsRetake = false;
+    state.retakeReason = null;
+
     bodyEl.innerHTML = `
       <div class="ai-step">
         ${dots}
         <h3>Your selfie</h3>
         <p>Please upload or snap a clear, makeup-free selfie in natural light. Face the camera directly, avoid filters, and make sure your skin is fully visible.</p>
+        ${retakeNoticeHtml}
 
         <div class="ai-camera-live" id="ai-camera-live" hidden>
           <video id="ai-camera-video" autoplay playsinline muted></video>
           <div class="ai-camera-actions">
-            <button class="ai-btn" id="ai-camera-capture-btn">Capture</button>
-            <button class="ai-btn ai-btn-ghost" id="ai-camera-cancel-btn">Cancel</button>
+            <button type="button" class="ai-btn" id="ai-camera-capture-btn">Capture Photo</button>
+            <button type="button" class="ai-btn ai-btn-ghost" id="ai-camera-cancel-btn">Cancel</button>
           </div>
         </div>
 
         <div id="ai-preview-area"></div>
 
         <div class="ai-upload-actions" id="ai-upload-actions">
-          <button class="ai-btn ai-btn-ghost" id="ai-camera-btn">${ICONS.camera} Take a Photo</button>
-          <button class="ai-btn ai-btn-ghost" id="ai-library-btn">Upload from Gallery</button>
+          <button type="button" class="ai-btn ai-btn-ghost" id="ai-camera-btn">${ICONS.camera} Take a Photo</button>
+          <button type="button" class="ai-btn ai-btn-ghost" id="ai-library-btn">Upload from Gallery</button>
         </div>
         <p class="ai-upload-hint">On desktop, you may be prompted to upload a photo instead. For the easiest selfie capture, open this page from your phone.</p>
 
         <input type="file" id="ai-selfie-input-camera" accept="image/*" capture="user">
         <input type="file" id="ai-selfie-input" accept="image/*">
 
-        <button class="ai-btn" id="ai-upload-continue" disabled>Analyze My Skin</button>
+        <button type="button" class="ai-btn" id="ai-upload-continue" disabled>Analyze My Skin</button>
+        <p id="ai-no-image-msg" style="display:none; color:#a4453a; font-size:.8rem; margin-top:.5em;">Please take or upload a clear selfie before continuing.</p>
       </div>
     `;
 
     const cameraInput = bodyEl.querySelector("#ai-selfie-input-camera");
     const libraryInput = bodyEl.querySelector("#ai-selfie-input");
     const continueBtn = bodyEl.querySelector("#ai-upload-continue");
+    const noImageMsg = bodyEl.querySelector("#ai-no-image-msg");
     const previewArea = bodyEl.querySelector("#ai-preview-area");
     const liveArea = bodyEl.querySelector("#ai-camera-live");
     const videoEl = bodyEl.querySelector("#ai-camera-video");
@@ -359,29 +377,81 @@
       uploadActions.hidden = false;
     }
 
-    function setImageFromDataUrl(dataUrl) {
-      state.imageDataUrl = dataUrl;
+    // Single source of truth for clearing the selected image — used by the
+    // preview's "x", "Retake Photo", and "Upload Different Photo".
+    function clearSelectedImage() {
+      state.imageDataUrl = null;
+      state.imageFile = null;
+      previewArea.innerHTML = "";
+      continueBtn.disabled = true;
+      uploadActions.hidden = false;
+    }
+
+    function renderPlainPreview(dataUrl) {
       previewArea.innerHTML = `
         <div class="ai-preview-wrap">
           <img src="${dataUrl}" alt="Your selfie preview">
-          <button class="ai-preview-remove" id="ai-preview-remove">&times;</button>
+          <button type="button" class="ai-preview-remove" id="ai-preview-remove">&times;</button>
         </div>
       `;
-      previewArea.querySelector("#ai-preview-remove").addEventListener("click", () => {
-        state.imageDataUrl = null;
-        state.imageFile = null;
-        previewArea.innerHTML = "";
-        continueBtn.disabled = true;
+      previewArea.querySelector("#ai-preview-remove").addEventListener("click", clearSelectedImage);
+      uploadActions.hidden = false;
+      console.log("[AI Skin Analysis] preview shown");
+    }
+
+    // Shown only right after a live-camera Capture, so the client can
+    // confirm the exact frame before moving on. Upload from Gallery stays
+    // one tap away the whole time via "Upload Different Photo".
+    function renderCapturedConfirm(dataUrl) {
+      previewArea.innerHTML = `
+        <div class="ai-preview-wrap">
+          <img src="${dataUrl}" alt="Captured selfie preview">
+        </div>
+        <div class="ai-upload-actions">
+          <button type="button" class="ai-btn" id="ai-use-photo-btn">Use This Photo</button>
+          <button type="button" class="ai-btn ai-btn-ghost" id="ai-retake-capture-btn">Retake Photo</button>
+          <button type="button" class="ai-btn ai-btn-ghost" id="ai-upload-different-btn">Upload Different Photo</button>
+        </div>
+      `;
+      console.log("[AI Skin Analysis] preview shown");
+      previewArea.querySelector("#ai-use-photo-btn").addEventListener("click", () => {
+        renderPlainPreview(dataUrl);
       });
-      continueBtn.disabled = false;
+      previewArea.querySelector("#ai-retake-capture-btn").addEventListener("click", () => {
+        clearSelectedImage();
+        openLiveCamera();
+      });
+      previewArea.querySelector("#ai-upload-different-btn").addEventListener("click", () => {
+        clearSelectedImage();
+        libraryInput.click();
+      });
+    }
+
+    // Single source of truth for STORING a selected image — Upload from
+    // Gallery, the native camera-app fallback, and the live in-page Capture
+    // button all funnel through here, writing to the exact same
+    // state.imageFile / state.imageDataUrl used everywhere downstream
+    // (including the /api/analyze-skin submission in runAnalysis()).
+    function storeSelectedImage(file, fromLiveCamera) {
+      if (!file || !file.type || !file.type.startsWith("image/")) return;
+      state.imageFile = file;
+      console.log("[AI Skin Analysis] selected image set", file.name, file.size, file.type);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        state.imageDataUrl = e.target.result;
+        continueBtn.disabled = false;
+        noImageMsg.style.display = "none";
+        if (fromLiveCamera) {
+          renderCapturedConfirm(state.imageDataUrl);
+        } else {
+          renderPlainPreview(state.imageDataUrl);
+        }
+      };
+      reader.readAsDataURL(file);
     }
 
     function handleFile(file) {
-      if (!file || !file.type || !file.type.startsWith("image/")) return;
-      state.imageFile = file;
-      const reader = new FileReader();
-      reader.onload = (e) => setImageFromDataUrl(e.target.result);
-      reader.readAsDataURL(file);
+      storeSelectedImage(file, false);
     }
 
     // "Take a Photo" — prefer a live in-page camera (getUserMedia) so we can
@@ -396,30 +466,99 @@
       }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" },
+          video: { facingMode: "user", aspectRatio: { ideal: CAPTURE_ASPECT_RATIO } },
           audio: false,
         });
         activeCameraStream = stream;
         videoEl.srcObject = stream;
+        // Some mobile browsers (notably iOS Safari) don't reliably start
+        // decoding frames from the `autoplay` attribute alone when
+        // `srcObject` is assigned programmatically — calling play()
+        // explicitly (video is muted, so no fresh user gesture is required)
+        // helps make sure a real frame is being decoded before Capture is
+        // tapped.
+        try { await videoEl.play(); } catch (playErr) { /* likely already playing */ }
+        previewArea.innerHTML = "";
         liveArea.hidden = false;
         uploadActions.hidden = true;
+        console.log("[AI Skin Analysis] camera opened");
       } catch (err) {
         cameraInput.click();
       }
     }
 
+    // Resolves once the live video actually has a decoded frame ready to
+    // draw. Without this guard, tapping Capture right as the preview
+    // appears can hit a video element that has a stream attached but
+    // hasn't decoded its first frame yet — drawImage() on that video
+    // produces a blank canvas (or throws), which looks exactly like
+    // "Capture does nothing" / "doesn't save the photo."
+    function waitForVideoFrame(timeoutMs) {
+      return new Promise((resolve) => {
+        if (videoEl.readyState >= 2 && videoEl.videoWidth > 0) {
+          resolve();
+          return;
+        }
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          videoEl.removeEventListener("loadeddata", finish);
+          clearTimeout(timer);
+          resolve();
+        };
+        videoEl.addEventListener("loadeddata", finish);
+        const timer = setTimeout(finish, timeoutMs);
+      });
+    }
+
+    // Calm inline message inside the live-camera box if Capture can't get a
+    // real frame yet, instead of the button silently doing nothing.
+    function showCameraCaptureError() {
+      let errEl = liveArea.querySelector(".ai-camera-error");
+      if (!errEl) {
+        errEl = document.createElement("p");
+        errEl.className = "ai-camera-error";
+        errEl.style.fontSize = ".85rem";
+        errEl.style.margin = ".6em 0 0";
+        errEl.style.color = "#fff";
+        liveArea.insertBefore(errEl, liveArea.querySelector(".ai-camera-actions"));
+      }
+      errEl.textContent = "We couldn't capture a photo just yet — please make sure the camera preview is visible, then tap Capture Photo again.";
+    }
+
     bodyEl.querySelector("#ai-camera-btn").addEventListener("click", openLiveCamera);
     bodyEl.querySelector("#ai-library-btn").addEventListener("click", () => libraryInput.click());
 
-    bodyEl.querySelector("#ai-camera-capture-btn").addEventListener("click", () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = videoEl.videoWidth || 640;
-      canvas.height = videoEl.videoHeight || 640;
-      canvas.getContext("2d").drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
-      stopLiveCamera();
-      state.imageFile = null;
-      setImageFromDataUrl(dataUrl);
+    const captureBtn = bodyEl.querySelector("#ai-camera-capture-btn");
+    const captureBtnDefaultLabel = captureBtn.textContent;
+    captureBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      console.log("[AI Skin Analysis] capture clicked");
+      if (captureBtn.disabled) return;
+      captureBtn.disabled = true;
+      captureBtn.textContent = "Capturing…";
+      try {
+        await waitForVideoFrame(1500);
+        if (!videoEl.videoWidth || !videoEl.videoHeight) {
+          throw new Error("Camera frame not ready yet");
+        }
+        // Crop to the same 4:5 region visible in the live preview box (see
+        // CAPTURE_ASPECT_RATIO / captureCroppedFrame near the top of this
+        // file) so the captured photo always matches the live preview crop.
+        const blob = await captureCroppedFrame(videoEl);
+        const file = new File([blob], "skinart-selfie.jpg", { type: "image/jpeg" });
+        console.log("[AI Skin Analysis] file created", file.name, file.size, file.type);
+        stopActiveCamera();
+        liveArea.hidden = true;
+        storeSelectedImage(file, true);
+      } catch (err) {
+        console.error("[AI Skin Analysis] Photo capture failed:", err);
+        showCameraCaptureError();
+      } finally {
+        captureBtn.disabled = false;
+        captureBtn.textContent = captureBtnDefaultLabel;
+      }
     });
 
     bodyEl.querySelector("#ai-camera-cancel-btn").addEventListener("click", stopLiveCamera);
@@ -428,6 +567,11 @@
     libraryInput.addEventListener("change", (e) => handleFile(e.target.files[0]));
 
     continueBtn.addEventListener("click", () => {
+      if (!state.imageDataUrl) {
+        noImageMsg.style.display = "block";
+        return;
+      }
+      noImageMsg.style.display = "none";
       stopActiveCamera();
       state.step = "analyzing";
       render();
@@ -446,6 +590,7 @@
   }
 
   async function runAnalysis() {
+    console.log("[AI Skin Analysis] submit started", !!state.imageDataUrl);
     let analysis = null;
 
     // Single call to our own serverless endpoint — it validates the lead's
@@ -465,6 +610,23 @@
       });
 
       const data = await res.json();
+
+      // The backend's own photo-quality check (run server-side, after the
+      // image has already been received and stored for this submission)
+      // can ask for a retake. Route back to the upload step with contact
+      // info intact and only the image cleared — "Take a Photo" / "Upload
+      // from Gallery" there double as "Retake Photo" / "Upload Different
+      // Photo".
+      if (data && data.needsRetake) {
+        state.needsRetake = true;
+        state.retakeReason = typeof data.reason === "string" ? data.reason : null;
+        state.imageDataUrl = null;
+        state.imageFile = null;
+        state.step = "upload";
+        render();
+        return;
+      }
+
       // The backend always normalizes the report to ONE string field: analysis.
       // (Regardless of what it might be called internally — report/result/
       // message/aiAnalysis — the widget only ever reads `data.analysis`.)
