@@ -20,94 +20,7 @@
     BOOKING_URL: "https://skinart.glossgenius.com/services",
     ANALYZE_ENDPOINT: "/api/analyze-skin",
     SCHEDULE_CLICK_ENDPOINT: "/api/track-schedule-click",
-    TRACK_EVENT_ENDPOINT: "/api/track-event",
   };
-
-  // Fixed, non-AI-generated retake copy — kept as a hardcoded constant (like
-  // the backend's STANDARD_NEXT_STEP) so this client-facing message can
-  // never drift into a critical/alarming tone, regardless of what the AI's
-  // own short `reason` text says.
-  const RETAKE_MESSAGE =
-    "Let’s retake this for a more accurate SkinArt analysis. Please upload or snap a clear, makeup-free selfie in natural light, facing the camera directly. Avoid filters, shadows, sunglasses, masks, and heavy cropping so we can better assess your visible skin concerns.";
-
-  // IMPORTANT — this MUST match the `aspect-ratio` set on .ai-camera-live
-  // and .ai-preview-wrap in css/skin-analysis.css. Those CSS rules use
-  // `object-fit: cover` to decide what part of the live video the client
-  // actually sees; captureCroppedFrame() below re-derives that exact same
-  // center-crop region from the raw video stream before drawing it to the
-  // canvas, so the captured photo always matches the live preview frame
-  // pixel-for-pixel. If this ratio ever changes, update the CSS too.
-  const CAPTURE_ASPECT_RATIO = 4 / 5;
-  const CAPTURE_OUTPUT_WIDTH = 960;
-  const CAPTURE_OUTPUT_HEIGHT = Math.round(CAPTURE_OUTPUT_WIDTH / CAPTURE_ASPECT_RATIO);
-
-  // Takes the live <video> element and returns a data URL containing only
-  // the same center-cropped region the client sees on screen (the box is
-  // `object-fit: cover` at CAPTURE_ASPECT_RATIO), instead of the full raw
-  // camera frame. Without this, a phone's native camera stream (often
-  // 16:9 or 4:3) would get captured in full, while the on-screen preview
-  // box only ever showed a cropped slice of it — causing the captured
-  // photo to look repositioned/cropped differently than what was framed.
-  function captureCroppedFrame(videoEl) {
-    const vw = videoEl.videoWidth || 640;
-    const vh = videoEl.videoHeight || Math.round(640 / CAPTURE_ASPECT_RATIO);
-    const videoAspect = vw / vh;
-
-    let sx, sy, sw, sh;
-    if (videoAspect > CAPTURE_ASPECT_RATIO) {
-      // Raw stream is relatively wider than our target box — `cover` would
-      // crop its left/right edges, so we crop the same way before drawing.
-      sh = vh;
-      sw = vh * CAPTURE_ASPECT_RATIO;
-      sx = (vw - sw) / 2;
-      sy = 0;
-    } else {
-      // Raw stream is relatively taller/narrower — `cover` would crop its
-      // top/bottom edges instead.
-      sw = vw;
-      sh = vw / CAPTURE_ASPECT_RATIO;
-      sx = 0;
-      sy = (vh - sh) / 2;
-    }
-
-    // Clamp to the video's actual bounds. The math above should already
-    // keep sx/sy/sw/sh in range, but floating-point rounding can push a
-    // source rect a hair past the real video dimensions on some
-    // browsers, and drawImage() throws IndexSizeError rather than
-    // tolerating it — which previously surfaced as a silent capture
-    // failure. Clamping removes that edge case entirely.
-    sx = Math.max(0, Math.min(sx, vw));
-    sy = Math.max(0, Math.min(sy, vh));
-    sw = Math.max(1, Math.min(sw, vw - sx));
-    sh = Math.max(1, Math.min(sh, vh - sy));
-
-    const canvas = document.createElement("canvas");
-    canvas.width = CAPTURE_OUTPUT_WIDTH;
-    canvas.height = CAPTURE_OUTPUT_HEIGHT;
-    canvas
-      .getContext("2d")
-      .drawImage(videoEl, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-    console.log("[AI Skin Analysis] canvas draw complete", canvas.width, canvas.height);
-
-    // Converted to a Blob (not toDataURL) so the captured photo becomes a
-    // real File below and can be handed to the exact same handleFile()
-    // function "Upload from Gallery" already uses — one code path, one
-    // selected-image variable, for both sources.
-    return new Promise((resolve, reject) => {
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            reject(new Error("Canvas toBlob returned null"));
-            return;
-          }
-          console.log("[AI Skin Analysis] blob created", blob.size, blob.type);
-          resolve(blob);
-        },
-        "image/jpeg",
-        0.9
-      );
-    });
-  }
 
   const ICONS = {
     sparkle:
@@ -126,10 +39,6 @@
     imageDataUrl: null,
     imageFile: null,
     analysis: null,
-    findings: null,
-    treatmentMatch: null,
-    needsRetake: false,
-    retakeReason: null,
     scheduleClicked: false,
   };
 
@@ -147,17 +56,6 @@
     return String(str || "").replace(/[&<>"']/g, (c) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
     }[c]));
-  }
-
-  // Fire-and-forget analytics ping — same pattern as notifyScheduleClick()
-  // below. Never throws, never blocks the UI; if analytics isn't configured
-  // server-side, /api/track-event still always responds 200.
-  function trackEvent(eventName) {
-    fetch(CONFIG.TRACK_EVENT_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ event_name: eventName }),
-    }).catch(() => {});
   }
 
   /* ---------------- Build floating bubble ---------------- */
@@ -356,8 +254,7 @@
       <div class="ai-step">
         ${dots}
         <h3>Your selfie</h3>
-        <p>Please upload or snap a selfie for your complimentary skin analysis.</p>
-        <p class="ai-upload-hint" style="margin:0 0 1.2em;">For best results: use natural light, face the camera directly, remove makeup if possible, avoid filters, and keep your full face visible.</p>
+        <p>Please upload or snap a clear, makeup-free selfie in natural light. Face the camera directly, avoid filters, and make sure your skin is fully visible.</p>
 
         <div class="ai-camera-live" id="ai-camera-live" hidden>
           <video id="ai-camera-video" autoplay playsinline muted></video>
@@ -404,7 +301,6 @@
           <button class="ai-preview-remove" id="ai-preview-remove">&times;</button>
         </div>
       `;
-      console.log("[AI Skin Analysis] preview updated");
       previewArea.querySelector("#ai-preview-remove").addEventListener("click", () => {
         state.imageDataUrl = null;
         state.imageFile = null;
@@ -412,18 +308,11 @@
         continueBtn.disabled = true;
       });
       continueBtn.disabled = false;
-      console.log("[AI Skin Analysis] analyze button enabled");
     }
 
-    // Single shared entry point for every photo source — live camera
-    // capture, the native camera-app fallback input, and Upload from
-    // Gallery all end up here, so there is exactly one place that sets the
-    // "selected image" state (state.imageFile + state.imageDataUrl) and
-    // exactly one place that turns on the preview/Analyze button.
     function handleFile(file) {
       if (!file || !file.type || !file.type.startsWith("image/")) return;
       state.imageFile = file;
-      console.log("[AI Skin Analysis] selected image set", file.name, file.size, file.type);
       const reader = new FileReader();
       reader.onload = (e) => setImageFromDataUrl(e.target.result);
       reader.readAsDataURL(file);
@@ -441,25 +330,11 @@
       }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          // `aspectRatio` is just a hint (ideal, not required) so devices
-          // that support it stream closer to our target framing already —
-          // captureCroppedFrame() still re-crops to CAPTURE_ASPECT_RATIO
-          // afterward regardless, so this is a quality nicety, not a
-          // requirement, and degrades gracefully on browsers that ignore it.
-          video: { facingMode: "user", aspectRatio: { ideal: CAPTURE_ASPECT_RATIO } },
+          video: { facingMode: "user" },
           audio: false,
         });
         activeCameraStream = stream;
         videoEl.srcObject = stream;
-        // Some mobile browsers (notably iOS Safari) don't reliably start
-        // decoding frames from the `autoplay` attribute alone when
-        // `srcObject` is assigned programmatically — calling play()
-        // explicitly (the video is muted, so this is allowed without a
-        // fresh user gesture) makes sure a real frame is actually being
-        // decoded before the client can tap Capture. Without this, Capture
-        // could silently grab a blank frame on some devices even though
-        // the preview box itself was already visible.
-        try { await videoEl.play(); } catch (playErr) { /* autoplay likely already running */ }
         liveArea.hidden = false;
         uploadActions.hidden = true;
       } catch (err) {
@@ -467,119 +342,18 @@
       }
     }
 
-    // Resolves once the live video actually has a decoded frame ready to
-    // draw (readyState >= HAVE_CURRENT_DATA and a real pixel size). Without
-    // this guard, tapping Capture right as the preview appears can hit a
-    // video element that has a stream attached but hasn't decoded its
-    // first frame yet — drawImage() on that video produces a blank/garbage
-    // canvas (or throws on some browsers), which looks exactly like
-    // "Capture does nothing."
-    function waitForVideoFrame(timeoutMs) {
-      return new Promise((resolve) => {
-        if (videoEl.readyState >= 2 && videoEl.videoWidth > 0) {
-          resolve();
-          return;
-        }
-        let settled = false;
-        const finish = () => {
-          if (settled) return;
-          settled = true;
-          videoEl.removeEventListener("loadeddata", finish);
-          clearTimeout(timer);
-          resolve();
-        };
-        videoEl.addEventListener("loadeddata", finish);
-        const timer = setTimeout(finish, timeoutMs);
-      });
-    }
-
     bodyEl.querySelector("#ai-camera-btn").addEventListener("click", openLiveCamera);
     bodyEl.querySelector("#ai-library-btn").addEventListener("click", () => libraryInput.click());
 
-    // Shows a calm inline message in the live-camera box if Capture can't
-    // get a real frame yet, instead of the button silently doing nothing.
-    // FIX: this previously had no text color set, so against the camera
-    // box's black background it inherited the site's near-black default
-    // text color and was completely invisible — the message WAS being
-    // shown, the client just couldn't see it, which looked exactly like
-    // "nothing happens."
-    function showCameraCaptureError() {
-      let errEl = liveArea.querySelector(".ai-camera-error");
-      if (!errEl) {
-        errEl = document.createElement("p");
-        errEl.className = "ai-camera-error";
-        errEl.style.fontSize = ".85rem";
-        errEl.style.margin = ".6em 0 0";
-        errEl.style.color = "#fff";
-        liveArea.insertBefore(errEl, liveArea.querySelector(".ai-camera-actions"));
-      }
-      errEl.textContent = "We couldn't capture a photo just yet — please make sure the camera preview is visible, then tap Capture again.";
-    }
-
-    const captureBtn = bodyEl.querySelector("#ai-camera-capture-btn");
-    const captureBtnDefaultLabel = captureBtn.textContent;
-    captureBtn.addEventListener("click", async () => {
-      // BUG FIX: this handler used to call captureCroppedFrame() immediately
-      // on click, without ever calling the waitForVideoFrame() guard defined
-      // above. On devices where the live <video> hadn't decoded its first
-      // real frame yet (a known mobile Safari timing issue when assigning
-      // `srcObject` programmatically), videoEl.videoWidth/videoHeight were
-      // still 0, and canvas drawImage() throws in that case — silently,
-      // since there was no try/catch here. That uncaught error is exactly
-      // why "Capture" looked like it did nothing: the click fired, the
-      // frame was never actually drawn.
-      // Now we explicitly await a real decoded frame first, guard against a
-      // still-zero video size, and surface a clear, VISIBLE retry message
-      // instead of failing silently. We also flip the button's own label to
-      // "Capturing…" the instant it's tapped, so there's never a moment
-      // where the tap visibly does nothing while the (usually instant, but
-      // up to 1.5s worst-case) frame-readiness check runs.
-      //
-      // FIX (round 3): Capture used to hand the frame to an intermediate
-      // "Use This Photo" / "Retake Photo" confirm screen instead of storing
-      // it right away. That confirm screen reused the same 4:5 photo box as
-      // the live camera, so after tapping Capture the client saw what looked
-      // like the exact same preview box again with no live video in it —
-      // reported as "it clicks as if it captures but then goes straight
-      // back to the preview screen" / "doesn't store". The photo WAS
-      // captured, it just wasn't committed to state.imageDataUrl (and the
-      // Analyze button stayed disabled) until a second, easy-to-miss tap.
-      //
-      // FIX (round 4): Capture now goes canvas -> Blob -> File and hands
-      // that File to the exact same handleFile() that "Upload from Gallery"
-      // already uses, instead of writing to state.imageDataUrl directly.
-      // That guarantees the captured photo lands in the exact same
-      // selected-image variable (state.imageFile / state.imageDataUrl) via
-      // the exact same code path as a gallery upload — no parallel,
-      // possibly-diverging logic for the two sources.
-      if (captureBtn.disabled) return;
-      console.log("[AI Skin Analysis] capture button clicked");
-      captureBtn.disabled = true;
-      captureBtn.textContent = "Capturing…";
-      try {
-        await waitForVideoFrame(1500);
-        console.log("[AI Skin Analysis] video width/height", videoEl.videoWidth, videoEl.videoHeight);
-        if (!videoEl.videoWidth || !videoEl.videoHeight) {
-          throw new Error("Camera frame not ready yet");
-        }
-        // Crop to the same frame the client just saw in the live preview
-        // (see captureCroppedFrame's comment + CAPTURE_ASPECT_RATIO above)
-        // instead of grabbing the full raw camera stream.
-        const blob = await captureCroppedFrame(videoEl);
-        const file = new File([blob], `selfie-${Date.now()}.jpg`, { type: "image/jpeg" });
-        console.log("[AI Skin Analysis] file created", file.name, file.size, file.type);
-        stopActiveCamera();
-        liveArea.hidden = true;
-        uploadActions.hidden = false;
-        handleFile(file);
-        captureBtn.disabled = false;
-        captureBtn.textContent = captureBtnDefaultLabel;
-      } catch (err) {
-        console.error("[AI Skin Analysis] Photo capture failed:", err);
-        showCameraCaptureError();
-        captureBtn.disabled = false;
-        captureBtn.textContent = captureBtnDefaultLabel;
-      }
+    bodyEl.querySelector("#ai-camera-capture-btn").addEventListener("click", () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = videoEl.videoWidth || 640;
+      canvas.height = videoEl.videoHeight || 640;
+      canvas.getContext("2d").drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+      stopLiveCamera();
+      state.imageFile = null;
+      setImageFromDataUrl(dataUrl);
     });
 
     bodyEl.querySelector("#ai-camera-cancel-btn").addEventListener("click", stopLiveCamera);
@@ -588,7 +362,6 @@
     libraryInput.addEventListener("change", (e) => handleFile(e.target.files[0]));
 
     continueBtn.addEventListener("click", () => {
-      console.log("[AI Skin Analysis] form submitted with image:", !!state.imageDataUrl);
       stopActiveCamera();
       state.step = "analyzing";
       render();
@@ -608,10 +381,6 @@
 
   async function runAnalysis() {
     let analysis = null;
-    let findings = null;
-    let treatmentMatch = null;
-    let needsRetake = false;
-    let retakeReason = null;
 
     // Single call to our own serverless endpoint — it validates the lead's
     // info, calls OpenAI server-side, emails the lead to the studio, and
@@ -630,36 +399,19 @@
       });
 
       const data = await res.json();
-
-      // The backend checks photo quality before producing an analysis. If
-      // it flagged the photo, we route to a dedicated retake screen instead
-      // of treating this as a generic failure — this check comes first so
-      // it can never be masked by the generic fallback message below.
-      if (data && data.needsRetake) {
-        needsRetake = true;
-        retakeReason = typeof data.reason === "string" ? data.reason : null;
-      } else if (!res.ok || !data.analysisAvailable || !data.analysis || typeof data.analysis !== "string") {
-        // The backend always normalizes the full report to ONE string field:
-        // analysis — that's the fallback this widget can always render from.
-        // `findings` and `treatmentMatch` are newer, additive fields that let
-        // renderResults() show a nicer, sectioned layout when present; if
-        // they're ever missing (e.g. an older deploy), the widget still works
-        // off `analysis` alone.
+      // The backend always normalizes the report to ONE string field: analysis.
+      // (Regardless of what it might be called internally — report/result/
+      // message/aiAnalysis — the widget only ever reads `data.analysis`.)
+      if (!res.ok || !data.analysisAvailable || !data.analysis || typeof data.analysis !== "string") {
         console.error("Analyze-skin endpoint returned no usable analysis:", data);
       } else {
         analysis = data.analysis;
-        findings = typeof data.findings === "string" ? data.findings : null;
-        treatmentMatch = data.treatmentMatch && typeof data.treatmentMatch === "object" ? data.treatmentMatch : null;
       }
     } catch (err) {
       console.error("Analyze-skin request failed:", err);
     }
 
     state.analysis = analysis;
-    state.findings = findings;
-    state.treatmentMatch = treatmentMatch;
-    state.needsRetake = needsRetake;
-    state.retakeReason = retakeReason;
     state.step = "results";
     render();
   }
@@ -683,141 +435,24 @@
       .filter(Boolean);
   }
 
-  // Renders the "Your SkinArt Treatment Match" card — primary match, why it
-  // may fit, up to 2 secondary options, and the recommended next step. Only
-  // called when the backend sent a valid treatmentMatch object.
-  function renderTreatmentMatchHtml(match) {
-    const secondary = Array.isArray(match.secondary) ? match.secondary : [];
-    const secondaryHtml = secondary.length
-      ? `
-        <div class="ai-treatment-secondary">
-          <h4>Secondary Options</h4>
-          <ul>
-            ${secondary
-              .map((s) => `<li><strong>${escapeHtml(s.name)}</strong> — ${escapeHtml(s.reason)}</li>`)
-              .join("")}
-          </ul>
-        </div>
-      `
-      : "";
-
-    return `
-      <div class="ai-treatment-match">
-        <h3>Your SkinArt Treatment Match</h3>
-        <div class="ai-treatment-primary">
-          <div class="ai-treatment-label">${match.fellBack ? "Suggested Starting Point" : "Primary Match"}</div>
-          <div class="ai-treatment-name">${escapeHtml(match.primaryName)}</div>
-        </div>
-        <div class="ai-treatment-why">
-          <h4>Why This Treatment May Fit</h4>
-          <p>${escapeHtml(match.primaryReason)}</p>
-        </div>
-        ${secondaryHtml}
-        <div class="ai-treatment-next">
-          <h4>Recommended Next Step</h4>
-          <p>${escapeHtml(match.nextStep)}</p>
-        </div>
-      </div>
-    `;
-  }
-
-  // Shown instead of the normal results screen when the backend's photo
-  // quality check flagged the selfie (too dark, blurry, filtered, cropped,
-  // angled, obstructed, etc.). Keeps the same calm, boxed-disclaimer styling
-  // used elsewhere in the widget — never the alarming red ".ai-error-box"
-  // treatment — and still preserves the Schedule Appointment CTA so a client
-  // can always skip ahead to an in-person consultation instead.
-  function renderRetakeNeeded() {
-    const reasonHtml = state.retakeReason
-      ? `<p style="font-size:.85rem;">${escapeHtml(state.retakeReason)}</p>`
-      : "";
-
-    bodyEl.innerHTML = `
-      <div class="ai-step">
-        <h3>Let's retake this for a more accurate analysis</h3>
-        <div class="ai-disclaimer-box">${escapeHtml(RETAKE_MESSAGE)}</div>
-        ${reasonHtml}
-        <button class="ai-btn" id="ai-retake-btn">Retake Photo</button>
-        <button class="ai-btn ai-btn-ghost" id="ai-reupload-btn" style="margin-top:.6em;">Upload Different Photo</button>
-
-        <p style="font-size:.85rem; margin-top:1.2em;">Prefer to skip ahead? Schedule your appointment and your esthetician can assess your skin in person.</p>
-        <a class="ai-btn ai-btn-ghost" id="ai-schedule-btn" href="${CONFIG.BOOKING_URL}" target="_blank" rel="noopener">Schedule Appointment</a>
-        <button class="ai-btn ai-btn-ghost" id="ai-chat-done" style="margin-top:.6em;">Close</button>
-      </div>
-    `;
-
-    function backToUpload() {
-      state.needsRetake = false;
-      state.retakeReason = null;
-      state.imageDataUrl = null;
-      state.imageFile = null;
-      state.step = "upload";
-      render();
-    }
-
-    bodyEl.querySelector("#ai-retake-btn").addEventListener("click", () => {
-      trackEvent("photo_retake_clicked");
-      backToUpload();
-    });
-    bodyEl.querySelector("#ai-reupload-btn").addEventListener("click", () => {
-      trackEvent("photo_reuploaded");
-      backToUpload();
-    });
-    bodyEl.querySelector("#ai-schedule-btn").addEventListener("click", () => {
-      state.scheduleClicked = true;
-      notifyScheduleClick();
-    });
-    bodyEl.querySelector("#ai-chat-done").addEventListener("click", closeChat);
-  }
-
   function renderResults() {
-    if (state.needsRetake) return renderRetakeNeeded();
+    const sections = parseAnalysisSections(state.analysis);
+    const hasReport = sections.length > 0;
 
-    const hasTreatmentMatch = !!(state.treatmentMatch && state.treatmentMatch.primaryName);
-
-    let reportHtml;
-    if (hasTreatmentMatch) {
-      // Newer, sectioned layout: findings grouped under their own heading,
-      // then a dedicated treatment-match card.
-      const findingsSections = parseAnalysisSections(state.findings || state.analysis);
-      const findingsHtml = findingsSections.length
-        ? findingsSections
-            .map(([label, content]) => `
-              <div class="ai-result-section">
-                <h4>${escapeHtml(label)}</h4>
-                <p>${escapeHtml(content)}</p>
-              </div>
-            `)
-            .join("")
-        : "";
-
-      reportHtml = `
-        <h3>Your Preliminary Skin Findings</h3>
-        ${findingsHtml}
-        ${renderTreatmentMatchHtml(state.treatmentMatch)}
-      `;
-    } else {
-      // Fallback: original generic rendering, unchanged — used if the AI
-      // analysis wasn't available or the backend didn't send a treatment
-      // match for some reason. This path is intentionally identical to the
-      // widget's original behavior so nothing breaks.
-      const sections = parseAnalysisSections(state.analysis);
-      const hasReport = sections.length > 0;
-      reportHtml = hasReport
-        ? `<h3>Your Preliminary Results</h3>` +
-          sections
-            .map(([label, content]) => `
-              <div class="ai-result-section">
-                <h4>${escapeHtml(label)}</h4>
-                <p>${escapeHtml(content)}</p>
-              </div>
-            `)
-            .join("")
-        : `<h3>Your Preliminary Results</h3><div class="ai-error-box">Instant results aren't quite ready yet on our end — but don't worry, your photo and details have already been sent to our team. An esthetician will personally review your submission and follow up with recommendations.</div>`;
-    }
+    const reportHtml = hasReport
+      ? sections
+          .map(([label, content]) => `
+            <div class="ai-result-section">
+              <h4>${escapeHtml(label)}</h4>
+              <p>${escapeHtml(content)}</p>
+            </div>
+          `)
+          .join("")
+      : `<div class="ai-error-box">Instant results aren't quite ready yet on our end — but don't worry, your photo and details have already been sent to our team. An esthetician will personally review your submission and follow up with recommendations.</div>`;
 
     bodyEl.innerHTML = `
       <div class="ai-step">
+        <h3>Your Preliminary Results</h3>
         ${reportHtml}
 
         <p style="font-size:.85rem;">Ready for a professional skin plan? Schedule your appointment and let's create a treatment protocol designed around your skin.</p>
