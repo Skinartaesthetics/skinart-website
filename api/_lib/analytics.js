@@ -91,8 +91,12 @@ export async function logEvent({
     return { ok: false, reason: "Unknown event_name" };
   }
 
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // .trim() guards against trailing newlines/spaces that sneak in when an
+  // env var value is copy-pasted from a dashboard "copy" button — a stray
+  // \n in a header value makes Node's fetch() throw "TypeError: fetch failed"
+  // with no useful message, which is otherwise very hard to diagnose.
+  const url = (process.env.SUPABASE_URL || "").trim().replace(/\/+$/, "");
+  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
   if (!url || !key) {
     console.warn("Analytics: SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not configured — skipping event:", eventName);
     return { ok: false, reason: "Analytics not configured" };
