@@ -346,6 +346,10 @@
         videoEl.srcObject = stream;
         liveArea.hidden = false;
         uploadActions.hidden = true;
+        // Some browsers (notably iOS Safari) won't reliably start the
+        // stream from the autoplay/muted/playsinline attributes alone —
+        // call play() explicitly so videoWidth/videoHeight populate.
+        videoEl.play().catch(() => {});
       } catch (err) {
         cameraInput.click();
       }
@@ -366,18 +370,29 @@
       const vh = videoEl.videoHeight;
       if (!vw || !vh) return null;
 
+      // Measure the box's ACTUAL on-screen ratio right now, rather than
+      // assuming CAPTURE_ASPECT_RATIO — this is what makes capture match the
+      // preview on any phone/tablet/screen size, including the shorter ratio
+      // a small-viewport-height media query may switch to (e.g. landscape).
+      // Falls back to the constant only if layout hasn't happened yet.
+      const boxRect = liveArea.getBoundingClientRect();
+      const targetRatio =
+        boxRect.width > 0 && boxRect.height > 0
+          ? boxRect.width / boxRect.height
+          : CAPTURE_ASPECT_RATIO;
+
       let sx, sy, sw, sh;
       const videoRatio = vw / vh;
-      if (videoRatio > CAPTURE_ASPECT_RATIO) {
+      if (videoRatio > targetRatio) {
         // Video is wider than the target box — crop the left/right sides.
         sh = vh;
-        sw = vh * CAPTURE_ASPECT_RATIO;
+        sw = vh * targetRatio;
         sx = (vw - sw) / 2;
         sy = 0;
       } else {
         // Video is taller than the target box — crop the top/bottom.
         sw = vw;
-        sh = vw / CAPTURE_ASPECT_RATIO;
+        sh = vw / targetRatio;
         sx = 0;
         sy = (vh - sh) / 2;
       }
@@ -385,30 +400,40 @@
       const canvas = document.createElement("canvas");
       const outW = Math.min(sw, 900); // keep the upload reasonably small
       canvas.width = outW;
-      canvas.height = outW / CAPTURE_ASPECT_RATIO;
+      canvas.height = outW / targetRatio;
       canvas
         .getContext("2d")
         .drawImage(videoEl, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
       return canvas.toDataURL("image/jpeg", 0.9);
     }
 
-    bodyEl.querySelector("#ai-camera-capture-btn").addEventListener("click", () => {
+    // Tries the proper aspect-ratio-cropped capture a few times (metadata can
+    // take a beat on some mobile browsers); if it still isn't ready, falls
+    // back to capturing the raw frame outright so the button never just does
+    // nothing — a slightly-off crop beats a dead button.
+    function attemptCapture(retriesLeft) {
       const dataUrl = captureCroppedFrame();
-      if (!dataUrl) {
-        // Metadata not ready yet — give the stream a moment and retry once.
-        setTimeout(() => {
-          const retryUrl = captureCroppedFrame();
-          if (retryUrl) {
-            stopLiveCamera();
-            state.imageFile = null;
-            setImageFromDataUrl(retryUrl);
-          }
-        }, 300);
+      if (dataUrl) {
+        stopLiveCamera();
+        state.imageFile = null;
+        setImageFromDataUrl(dataUrl);
         return;
       }
+      if (retriesLeft > 0) {
+        setTimeout(() => attemptCapture(retriesLeft - 1), 200);
+        return;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = videoEl.videoWidth || 640;
+      canvas.height = videoEl.videoHeight || 640;
+      canvas.getContext("2d").drawImage(videoEl, 0, 0, canvas.width, canvas.height);
       stopLiveCamera();
       state.imageFile = null;
-      setImageFromDataUrl(dataUrl);
+      setImageFromDataUrl(canvas.toDataURL("image/jpeg", 0.9));
+    }
+
+    bodyEl.querySelector("#ai-camera-capture-btn").addEventListener("click", () => {
+      attemptCapture(5);
     });
 
     bodyEl.querySelector("#ai-camera-cancel-btn").addEventListener("click", stopLiveCamera);

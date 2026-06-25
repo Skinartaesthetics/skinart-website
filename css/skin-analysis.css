@@ -325,6 +325,24 @@
   aspect-ratio: 4 / 5;
 }
 .ai-preview-wrap img { width: 100%; height: 100%; display: block; object-fit: cover; }
+
+/* On short viewports (small phones in landscape, or any device where the
+   chat panel's ~88vh max-height leaves little room) a 4:5 box can push the
+   Capture/Cancel buttons out of view. Switch to a shorter ratio there —
+   skin-analysis.js measures the box's real on-screen ratio at capture time,
+   so the saved photo always matches whichever ratio is actually showing. */
+@media (max-height: 650px) {
+  .ai-camera-live,
+  .ai-preview-wrap {
+    aspect-ratio: 4 / 3;
+  }
+}
+@media (max-height: 480px) {
+  .ai-camera-live,
+  .ai-preview-wrap {
+    aspect-ratio: 1 / 1;
+  }
+}
 .ai-preview-remove {
   position: absolute;
   top: 8px;
