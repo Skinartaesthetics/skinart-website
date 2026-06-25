@@ -20,15 +20,7 @@
     BOOKING_URL: "https://skinart.glossgenius.com/services",
     ANALYZE_ENDPOINT: "/api/analyze-skin",
     SCHEDULE_CLICK_ENDPOINT: "/api/track-schedule-click",
-    TRACK_EVENT_ENDPOINT: "/api/track-event",
   };
-
-  // Fixed, non-AI-generated retake copy — kept as a hardcoded constant (like
-  // the backend's STANDARD_NEXT_STEP) so this client-facing message can
-  // never drift into a critical/alarming tone, regardless of what the AI's
-  // own short `reason` text says.
-  const RETAKE_MESSAGE =
-    "Let’s retake this for a more accurate SkinArt analysis. Please upload or snap a clear, makeup-free selfie in natural light, facing the camera directly. Avoid filters, shadows, sunglasses, masks, and heavy cropping so we can better assess your visible skin concerns.";
 
   const ICONS = {
     sparkle:
@@ -49,8 +41,6 @@
     analysis: null,
     findings: null,
     treatmentMatch: null,
-    needsRetake: false,
-    retakeReason: null,
     scheduleClicked: false,
   };
 
@@ -68,17 +58,6 @@
     return String(str || "").replace(/[&<>"']/g, (c) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
     }[c]));
-  }
-
-  // Fire-and-forget analytics ping — same pattern as notifyScheduleClick()
-  // below. Never throws, never blocks the UI; if analytics isn't configured
-  // server-side, /api/track-event still always responds 200.
-  function trackEvent(eventName) {
-    fetch(CONFIG.TRACK_EVENT_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ event_name: eventName }),
-    }).catch(() => {});
   }
 
   /* ---------------- Build floating bubble ---------------- */
@@ -277,8 +256,7 @@
       <div class="ai-step">
         ${dots}
         <h3>Your selfie</h3>
-        <p>Please upload or snap a selfie for your complimentary skin analysis.</p>
-        <p class="ai-upload-hint" style="margin:0 0 1.2em;">For best results: use natural light, face the camera directly, remove makeup if possible, avoid filters, and keep your full face visible.</p>
+        <p>Please upload or snap a clear, makeup-free selfie in natural light. Face the camera directly, avoid filters, and make sure your skin is fully visible.</p>
 
         <div class="ai-camera-live" id="ai-camera-live" hidden>
           <video id="ai-camera-video" autoplay playsinline muted></video>
@@ -407,8 +385,6 @@
     let analysis = null;
     let findings = null;
     let treatmentMatch = null;
-    let needsRetake = false;
-    let retakeReason = null;
 
     // Single call to our own serverless endpoint — it validates the lead's
     // info, calls OpenAI server-side, emails the lead to the studio, and
@@ -427,21 +403,13 @@
       });
 
       const data = await res.json();
-
-      // The backend checks photo quality before producing an analysis. If
-      // it flagged the photo, we route to a dedicated retake screen instead
-      // of treating this as a generic failure — this check comes first so
-      // it can never be masked by the generic fallback message below.
-      if (data && data.needsRetake) {
-        needsRetake = true;
-        retakeReason = typeof data.reason === "string" ? data.reason : null;
-      } else if (!res.ok || !data.analysisAvailable || !data.analysis || typeof data.analysis !== "string") {
-        // The backend always normalizes the full report to ONE string field:
-        // analysis — that's the fallback this widget can always render from.
-        // `findings` and `treatmentMatch` are newer, additive fields that let
-        // renderResults() show a nicer, sectioned layout when present; if
-        // they're ever missing (e.g. an older deploy), the widget still works
-        // off `analysis` alone.
+      // The backend always normalizes the full report to ONE string field:
+      // analysis — that's the fallback this widget can always render from.
+      // `findings` and `treatmentMatch` are newer, additive fields that let
+      // renderResults() show a nicer, sectioned layout when present; if
+      // they're ever missing (e.g. an older deploy), the widget still works
+      // off `analysis` alone.
+      if (!res.ok || !data.analysisAvailable || !data.analysis || typeof data.analysis !== "string") {
         console.error("Analyze-skin endpoint returned no usable analysis:", data);
       } else {
         analysis = data.analysis;
@@ -455,8 +423,6 @@
     state.analysis = analysis;
     state.findings = findings;
     state.treatmentMatch = treatmentMatch;
-    state.needsRetake = needsRetake;
-    state.retakeReason = retakeReason;
     state.step = "results";
     render();
   }
@@ -518,58 +484,7 @@
     `;
   }
 
-  // Shown instead of the normal results screen when the backend's photo
-  // quality check flagged the selfie (too dark, blurry, filtered, cropped,
-  // angled, obstructed, etc.). Keeps the same calm, boxed-disclaimer styling
-  // used elsewhere in the widget — never the alarming red ".ai-error-box"
-  // treatment — and still preserves the Schedule Appointment CTA so a client
-  // can always skip ahead to an in-person consultation instead.
-  function renderRetakeNeeded() {
-    const reasonHtml = state.retakeReason
-      ? `<p style="font-size:.85rem;">${escapeHtml(state.retakeReason)}</p>`
-      : "";
-
-    bodyEl.innerHTML = `
-      <div class="ai-step">
-        <h3>Let's retake this for a more accurate analysis</h3>
-        <div class="ai-disclaimer-box">${escapeHtml(RETAKE_MESSAGE)}</div>
-        ${reasonHtml}
-        <button class="ai-btn" id="ai-retake-btn">Retake Photo</button>
-        <button class="ai-btn ai-btn-ghost" id="ai-reupload-btn" style="margin-top:.6em;">Upload Different Photo</button>
-
-        <p style="font-size:.85rem; margin-top:1.2em;">Prefer to skip ahead? Schedule your appointment and your esthetician can assess your skin in person.</p>
-        <a class="ai-btn ai-btn-ghost" id="ai-schedule-btn" href="${CONFIG.BOOKING_URL}" target="_blank" rel="noopener">Schedule Appointment</a>
-        <button class="ai-btn ai-btn-ghost" id="ai-chat-done" style="margin-top:.6em;">Close</button>
-      </div>
-    `;
-
-    function backToUpload() {
-      state.needsRetake = false;
-      state.retakeReason = null;
-      state.imageDataUrl = null;
-      state.imageFile = null;
-      state.step = "upload";
-      render();
-    }
-
-    bodyEl.querySelector("#ai-retake-btn").addEventListener("click", () => {
-      trackEvent("photo_retake_clicked");
-      backToUpload();
-    });
-    bodyEl.querySelector("#ai-reupload-btn").addEventListener("click", () => {
-      trackEvent("photo_reuploaded");
-      backToUpload();
-    });
-    bodyEl.querySelector("#ai-schedule-btn").addEventListener("click", () => {
-      state.scheduleClicked = true;
-      notifyScheduleClick();
-    });
-    bodyEl.querySelector("#ai-chat-done").addEventListener("click", closeChat);
-  }
-
   function renderResults() {
-    if (state.needsRetake) return renderRetakeNeeded();
-
     const hasTreatmentMatch = !!(state.treatmentMatch && state.treatmentMatch.primaryName);
 
     let reportHtml;
