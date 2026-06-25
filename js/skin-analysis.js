@@ -30,6 +30,55 @@
   const RETAKE_MESSAGE =
     "Let’s retake this for a more accurate SkinArt analysis. Please upload or snap a clear, makeup-free selfie in natural light, facing the camera directly. Avoid filters, shadows, sunglasses, masks, and heavy cropping so we can better assess your visible skin concerns.";
 
+  // IMPORTANT — this MUST match the `aspect-ratio` set on .ai-camera-live
+  // and .ai-preview-wrap in css/skin-analysis.css. Those CSS rules use
+  // `object-fit: cover` to decide what part of the live video the client
+  // actually sees; captureCroppedFrame() below re-derives that exact same
+  // center-crop region from the raw video stream before drawing it to the
+  // canvas, so the captured photo always matches the live preview frame
+  // pixel-for-pixel. If this ratio ever changes, update the CSS too.
+  const CAPTURE_ASPECT_RATIO = 4 / 5;
+  const CAPTURE_OUTPUT_WIDTH = 960;
+  const CAPTURE_OUTPUT_HEIGHT = Math.round(CAPTURE_OUTPUT_WIDTH / CAPTURE_ASPECT_RATIO);
+
+  // Takes the live <video> element and returns a data URL containing only
+  // the same center-cropped region the client sees on screen (the box is
+  // `object-fit: cover` at CAPTURE_ASPECT_RATIO), instead of the full raw
+  // camera frame. Without this, a phone's native camera stream (often
+  // 16:9 or 4:3) would get captured in full, while the on-screen preview
+  // box only ever showed a cropped slice of it — causing the captured
+  // photo to look repositioned/cropped differently than what was framed.
+  function captureCroppedFrame(videoEl) {
+    const vw = videoEl.videoWidth || 640;
+    const vh = videoEl.videoHeight || Math.round(640 / CAPTURE_ASPECT_RATIO);
+    const videoAspect = vw / vh;
+
+    let sx, sy, sw, sh;
+    if (videoAspect > CAPTURE_ASPECT_RATIO) {
+      // Raw stream is relatively wider than our target box — `cover` would
+      // crop its left/right edges, so we crop the same way before drawing.
+      sh = vh;
+      sw = vh * CAPTURE_ASPECT_RATIO;
+      sx = (vw - sw) / 2;
+      sy = 0;
+    } else {
+      // Raw stream is relatively taller/narrower — `cover` would crop its
+      // top/bottom edges instead.
+      sw = vw;
+      sh = vw / CAPTURE_ASPECT_RATIO;
+      sx = 0;
+      sy = (vh - sh) / 2;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = CAPTURE_OUTPUT_WIDTH;
+    canvas.height = CAPTURE_OUTPUT_HEIGHT;
+    canvas
+      .getContext("2d")
+      .drawImage(videoEl, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.9);
+  }
+
   const ICONS = {
     sparkle:
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M18 6l-2.5 2.5M8.5 15.5L6 18"/><circle cx="12" cy="12" r="2.2"/></svg>',
@@ -354,7 +403,12 @@
       }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" },
+          // `aspectRatio` is just a hint (ideal, not required) so devices
+          // that support it stream closer to our target framing already —
+          // captureCroppedFrame() still re-crops to CAPTURE_ASPECT_RATIO
+          // afterward regardless, so this is a quality nicety, not a
+          // requirement, and degrades gracefully on browsers that ignore it.
+          video: { facingMode: "user", aspectRatio: { ideal: CAPTURE_ASPECT_RATIO } },
           audio: false,
         });
         activeCameraStream = stream;
@@ -366,18 +420,43 @@
       }
     }
 
+    // Shows the just-captured frame with "Use This Photo" / "Retake Photo"
+    // so the client confirms the exact frame they saw before it's submitted
+    // — they can always back out and re-open the live camera instead of
+    // being stuck with a bad take.
+    function showCaptureConfirm(dataUrl) {
+      uploadActions.hidden = true;
+      previewArea.innerHTML = `
+        <div class="ai-preview-wrap">
+          <img src="${dataUrl}" alt="Captured selfie preview">
+        </div>
+        <div class="ai-upload-actions">
+          <button class="ai-btn" id="ai-use-photo-btn">Use This Photo</button>
+          <button class="ai-btn ai-btn-ghost" id="ai-retake-capture-btn">Retake Photo</button>
+        </div>
+      `;
+      previewArea.querySelector("#ai-use-photo-btn").addEventListener("click", () => {
+        state.imageFile = null;
+        uploadActions.hidden = false;
+        setImageFromDataUrl(dataUrl);
+      });
+      previewArea.querySelector("#ai-retake-capture-btn").addEventListener("click", () => {
+        previewArea.innerHTML = "";
+        openLiveCamera();
+      });
+    }
+
     bodyEl.querySelector("#ai-camera-btn").addEventListener("click", openLiveCamera);
     bodyEl.querySelector("#ai-library-btn").addEventListener("click", () => libraryInput.click());
 
     bodyEl.querySelector("#ai-camera-capture-btn").addEventListener("click", () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = videoEl.videoWidth || 640;
-      canvas.height = videoEl.videoHeight || 640;
-      canvas.getContext("2d").drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
-      stopLiveCamera();
-      state.imageFile = null;
-      setImageFromDataUrl(dataUrl);
+      // Crop to the same frame the client just saw in the live preview (see
+      // captureCroppedFrame's comment + CAPTURE_ASPECT_RATIO above) instead
+      // of grabbing the full raw camera stream.
+      const dataUrl = captureCroppedFrame(videoEl);
+      stopActiveCamera();
+      liveArea.hidden = true;
+      showCaptureConfirm(dataUrl);
     });
 
     bodyEl.querySelector("#ai-camera-cancel-btn").addEventListener("click", stopLiveCamera);

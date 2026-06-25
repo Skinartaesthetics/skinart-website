@@ -286,19 +286,28 @@
   z-index: -1;
 }
 
+/* IMPORTANT — preview/capture crop must match: .ai-camera-live (live video
+   box) and .ai-preview-wrap (captured/uploaded photo box) both use a fixed
+   `aspect-ratio: 4 / 5` + `object-fit: cover`. This pair of rules MUST stay
+   in sync with CAPTURE_ASPECT_RATIO in js/skin-analysis.js — that constant
+   drives the center-crop math the canvas uses when grabbing a frame from
+   the live video stream. If you change the ratio in one place, change it
+   in both, or the live preview and the captured photo will frame the
+   face differently again. */
 .ai-camera-live {
   margin-bottom: 1em;
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid var(--cream);
   background: #000;
+  aspect-ratio: 4 / 5;
 }
 .ai-camera-live video {
   width: 100%;
-  max-height: 320px;
+  height: 100%;
   display: block;
   object-fit: cover;
-  transform: scaleX(-1); /* mirror the front camera preview */
+  transform: scaleX(-1); /* mirror the front camera preview only — the photo we actually capture is not mirrored */
 }
 .ai-camera-actions {
   display: flex;
@@ -314,12 +323,15 @@
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid var(--cream);
+  /* Same 4:5 aspect-ratio as .ai-camera-live — see note above. For a
+     camera-captured photo, the underlying image data is already cropped
+     to this exact ratio (so this is just a 1:1 display, no extra crop).
+     For a gallery upload, this box may crop the displayed thumbnail for a
+     consistent frame, but the full original photo is still what gets sent
+     for analysis. */
+  aspect-ratio: 4 / 5;
 }
-/* max-height matches .ai-camera-live video's 320px so the captured photo
-   shows the same framing/crop the user saw in the live camera preview —
-   previously this was shorter (260px), which cropped more off the bottom
-   than what was visible while taking the shot. */
-.ai-preview-wrap img { width: 100%; display: block; max-height: 320px; object-fit: cover; }
+.ai-preview-wrap img { width: 100%; height: 100%; display: block; object-fit: cover; }
 .ai-preview-remove {
   position: absolute;
   top: 8px;
