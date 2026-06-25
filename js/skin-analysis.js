@@ -22,6 +22,13 @@
     SCHEDULE_CLICK_ENDPOINT: "/api/track-schedule-click",
   };
 
+  // Must match the CSS aspect-ratio on .ai-camera-live / .ai-preview-wrap so
+  // the photo a user actually captures always matches what they saw in the
+  // live preview box — otherwise mobile cameras (which report tall native
+  // frames) end up center-cropped or letterboxed differently than the
+  // on-screen preview, which is the "black crop" mismatch bug.
+  const CAPTURE_ASPECT_RATIO = 4 / 5;
+
   const ICONS = {
     sparkle:
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M18 6l-2.5 2.5M8.5 15.5L6 18"/><circle cx="12" cy="12" r="2.2"/></svg>',
@@ -347,12 +354,58 @@
     bodyEl.querySelector("#ai-camera-btn").addEventListener("click", openLiveCamera);
     bodyEl.querySelector("#ai-library-btn").addEventListener("click", () => libraryInput.click());
 
-    bodyEl.querySelector("#ai-camera-capture-btn").addEventListener("click", () => {
+    // Crops the live video frame to CAPTURE_ASPECT_RATIO around its center,
+    // so the saved photo matches the 4:5 box the user saw on screen instead
+    // of the camera's raw (often portrait, often mismatched) native frame.
+    // Returns null if the video's metadata isn't ready yet (videoWidth/Height
+    // still 0) — happens occasionally on mobile if Capture is tapped the
+    // instant the live preview appears, which previously produced a blank
+    // black photo.
+    function captureCroppedFrame() {
+      const vw = videoEl.videoWidth;
+      const vh = videoEl.videoHeight;
+      if (!vw || !vh) return null;
+
+      let sx, sy, sw, sh;
+      const videoRatio = vw / vh;
+      if (videoRatio > CAPTURE_ASPECT_RATIO) {
+        // Video is wider than the target box — crop the left/right sides.
+        sh = vh;
+        sw = vh * CAPTURE_ASPECT_RATIO;
+        sx = (vw - sw) / 2;
+        sy = 0;
+      } else {
+        // Video is taller than the target box — crop the top/bottom.
+        sw = vw;
+        sh = vw / CAPTURE_ASPECT_RATIO;
+        sx = 0;
+        sy = (vh - sh) / 2;
+      }
+
       const canvas = document.createElement("canvas");
-      canvas.width = videoEl.videoWidth || 640;
-      canvas.height = videoEl.videoHeight || 640;
-      canvas.getContext("2d").drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+      const outW = Math.min(sw, 900); // keep the upload reasonably small
+      canvas.width = outW;
+      canvas.height = outW / CAPTURE_ASPECT_RATIO;
+      canvas
+        .getContext("2d")
+        .drawImage(videoEl, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL("image/jpeg", 0.9);
+    }
+
+    bodyEl.querySelector("#ai-camera-capture-btn").addEventListener("click", () => {
+      const dataUrl = captureCroppedFrame();
+      if (!dataUrl) {
+        // Metadata not ready yet — give the stream a moment and retry once.
+        setTimeout(() => {
+          const retryUrl = captureCroppedFrame();
+          if (retryUrl) {
+            stopLiveCamera();
+            state.imageFile = null;
+            setImageFromDataUrl(retryUrl);
+          }
+        }, 300);
+        return;
+      }
       stopLiveCamera();
       state.imageFile = null;
       setImageFromDataUrl(dataUrl);
