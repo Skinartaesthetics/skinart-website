@@ -31,6 +31,8 @@
    See SETUP.md for full deployment steps.
    ========================================================================== */
 
+import { logEvent } from "./_lib/analytics.js";
+
 export const config = {
   api: {
     bodyParser: { sizeLimit: "12mb" }, // selfies are base64-encoded; allow headroom
@@ -243,7 +245,8 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { name, phone, email, consent, image } = req.body || {};
+  const { name, phone, email, consent, image, sessionId, pageUrl } = req.body || {};
+  const userAgent = req.headers["user-agent"];
 
   // ---- Validation (defense in depth — widget validates too) ----
   const errors = [];
@@ -264,6 +267,23 @@ export default async function handler(req, res) {
   // Normalize to a single string field, "analysis" — this is the ONLY shape
   // the frontend (and the lead email) ever has to read.
   const analysisText = visionResult.ok ? formatAnalysisAsText(visionResult.analysis) : null;
+  const analysisOk = visionResult.ok && !!analysisText;
+
+  // ---- Analytics (best-effort, never blocks or alters the response) ----
+  // Per spec: record the lead's name/email/phone on AI-funnel events (the
+  // form has already been submitted by this point in the flow) — but never
+  // the selfie image or the full analysis text.
+  const leadMeta = { name: String(name).trim(), email: String(email).trim(), phone: String(phone).trim() };
+  // Awaited (with its own internal error handling) so the event reliably
+  // reaches the database before this serverless function exits — but a
+  // failure here can only ever return ok:false, never throw.
+  await logEvent({
+    eventName: analysisOk ? "ai_analysis_success" : "ai_analysis_failed",
+    pageUrl,
+    sessionId,
+    userAgent,
+    metadata: analysisOk ? leadMeta : { ...leadMeta, reason: visionResult.reason || "unknown" },
+  });
 
   // ---- Lead email (best-effort: still sent even if AI analysis failed, so no lead is lost) ----
   const submittedAt = fmtDate(new Date());
@@ -273,13 +293,26 @@ export default async function handler(req, res) {
     email: String(email).trim(),
     submittedAt,
     analysisText,
-    analysisOk: visionResult.ok && !!analysisText,
+    analysisOk,
     imageDataUrl: image,
+  });
+
+  // Email success/failure must never affect what the client sees — the AI
+  // report still displays as long as the OpenAI call succeeded above.
+  // logEvent() never throws (it catches its own errors and returns ok:false),
+  // so awaiting it here only adds a small, predictable delay — it cannot
+  // turn an email failure into a broken response.
+  await logEvent({
+    eventName: emailResult.sent ? "email_sent_success" : "email_sent_failed",
+    pageUrl,
+    sessionId,
+    userAgent,
+    metadata: emailResult.sent ? leadMeta : { ...leadMeta, reason: emailResult.reason || "unknown" },
   });
 
   res.status(200).json({
     success: true,
-    analysisAvailable: visionResult.ok && !!analysisText,
+    analysisAvailable: analysisOk,
     analysis: analysisText,
     emailSent: emailResult.sent,
   });

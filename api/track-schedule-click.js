@@ -9,7 +9,14 @@
    Uses the same environment variables as /api/analyze-skin:
      RESEND_API_KEY (or EMAIL_API_KEY)
      LEAD_EMAIL_TO
+
+   Also logs a schedule_appointment_clicked analytics event (Supabase, via
+   ../_lib/analytics.js) — best-effort, same non-blocking guarantee as the
+   email above. Only name/email/phone (already collected earlier in the
+   funnel) are recorded, never a selfie or full analysis text.
    ========================================================================== */
+
+import { logEvent } from "./_lib/analytics.js";
 
 function getEmailApiKey() {
   return process.env.RESEND_API_KEY || process.env.EMAIL_API_KEY || null;
@@ -27,9 +34,20 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { name, phone, email } = req.body || {};
+  const { name, phone, email, sessionId, pageUrl } = req.body || {};
   const apiKey = getEmailApiKey();
   const toEmail = process.env.LEAD_EMAIL_TO || "info@skinartaesthetics.com";
+
+  // Analytics logging is independent of the email step below and never
+  // throws — a missing/failed analytics write can't block this response.
+  // Awaited so the write reliably completes before this function exits.
+  await logEvent({
+    eventName: "schedule_appointment_clicked",
+    pageUrl,
+    sessionId,
+    userAgent: req.headers["user-agent"],
+    metadata: { name: String(name || "").trim(), email: String(email || "").trim(), phone: String(phone || "").trim() },
+  });
 
   if (!apiKey) {
     // Non-blocking — the widget doesn't need this to succeed.
