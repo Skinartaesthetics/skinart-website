@@ -70,6 +70,17 @@
       sy = (vh - sh) / 2;
     }
 
+    // Clamp to the video's actual bounds. The math above should already
+    // keep sx/sy/sw/sh in range, but floating-point rounding can push a
+    // source rect a hair past the real video dimensions on some
+    // browsers, and drawImage() throws IndexSizeError rather than
+    // tolerating it — which previously surfaced as a silent capture
+    // failure. Clamping removes that edge case entirely.
+    sx = Math.max(0, Math.min(sx, vw));
+    sy = Math.max(0, Math.min(sy, vh));
+    sw = Math.max(1, Math.min(sw, vw - sx));
+    sh = Math.max(1, Math.min(sh, vh - sy));
+
     const canvas = document.createElement("canvas");
     canvas.width = CAPTURE_OUTPUT_WIDTH;
     canvas.height = CAPTURE_OUTPUT_HEIGHT;
@@ -486,6 +497,11 @@
 
     // Shows a calm inline message in the live-camera box if Capture can't
     // get a real frame yet, instead of the button silently doing nothing.
+    // FIX: this previously had no text color set, so against the camera
+    // box's black background it inherited the site's near-black default
+    // text color and was completely invisible — the message WAS being
+    // shown, the client just couldn't see it, which looked exactly like
+    // "nothing happens."
     function showCameraCaptureError() {
       let errEl = liveArea.querySelector(".ai-camera-error");
       if (!errEl) {
@@ -493,12 +509,14 @@
         errEl.className = "ai-camera-error";
         errEl.style.fontSize = ".85rem";
         errEl.style.margin = ".6em 0 0";
+        errEl.style.color = "#fff";
         liveArea.insertBefore(errEl, liveArea.querySelector(".ai-camera-actions"));
       }
       errEl.textContent = "We couldn't capture a photo just yet — please make sure the camera preview is visible, then tap Capture again.";
     }
 
     const captureBtn = bodyEl.querySelector("#ai-camera-capture-btn");
+    const captureBtnDefaultLabel = captureBtn.textContent;
     captureBtn.addEventListener("click", async () => {
       // BUG FIX: this handler used to call captureCroppedFrame() immediately
       // on click, without ever calling the waitForVideoFrame() guard defined
@@ -510,10 +528,14 @@
       // why "Capture" looked like it did nothing: the click fired, the
       // frame was never actually drawn, and showCaptureConfirm() never ran.
       // Now we explicitly await a real decoded frame first, guard against a
-      // still-zero video size, and surface a clear retry message instead of
-      // failing silently.
+      // still-zero video size, and surface a clear, VISIBLE retry message
+      // instead of failing silently. We also flip the button's own label to
+      // "Capturing…" the instant it's tapped, so there's never a moment
+      // where the tap visibly does nothing while the (usually instant, but
+      // up to 1.5s worst-case) frame-readiness check runs.
       if (captureBtn.disabled) return;
       captureBtn.disabled = true;
+      captureBtn.textContent = "Capturing…";
       try {
         await waitForVideoFrame(1500);
         if (!videoEl.videoWidth || !videoEl.videoHeight) {
@@ -530,6 +552,7 @@
         console.error("Photo capture failed:", err);
         showCameraCaptureError();
         captureBtn.disabled = false;
+        captureBtn.textContent = captureBtnDefaultLabel;
       }
     });
 
