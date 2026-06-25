@@ -87,7 +87,26 @@
     canvas
       .getContext("2d")
       .drawImage(videoEl, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL("image/jpeg", 0.9);
+    console.log("[AI Skin Analysis] canvas draw complete", canvas.width, canvas.height);
+
+    // Converted to a Blob (not toDataURL) so the captured photo becomes a
+    // real File below and can be handed to the exact same handleFile()
+    // function "Upload from Gallery" already uses — one code path, one
+    // selected-image variable, for both sources.
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("Canvas toBlob returned null"));
+            return;
+          }
+          console.log("[AI Skin Analysis] blob created", blob.size, blob.type);
+          resolve(blob);
+        },
+        "image/jpeg",
+        0.9
+      );
+    });
   }
 
   const ICONS = {
@@ -385,6 +404,7 @@
           <button class="ai-preview-remove" id="ai-preview-remove">&times;</button>
         </div>
       `;
+      console.log("[AI Skin Analysis] preview updated");
       previewArea.querySelector("#ai-preview-remove").addEventListener("click", () => {
         state.imageDataUrl = null;
         state.imageFile = null;
@@ -392,11 +412,18 @@
         continueBtn.disabled = true;
       });
       continueBtn.disabled = false;
+      console.log("[AI Skin Analysis] analyze button enabled");
     }
 
+    // Single shared entry point for every photo source — live camera
+    // capture, the native camera-app fallback input, and Upload from
+    // Gallery all end up here, so there is exactly one place that sets the
+    // "selected image" state (state.imageFile + state.imageDataUrl) and
+    // exactly one place that turns on the preview/Analyze button.
     function handleFile(file) {
       if (!file || !file.type || !file.type.startsWith("image/")) return;
       state.imageFile = file;
+      console.log("[AI Skin Analysis] selected image set", file.name, file.size, file.type);
       const reader = new FileReader();
       reader.onload = (e) => setImageFromDataUrl(e.target.result);
       reader.readAsDataURL(file);
@@ -517,33 +544,38 @@
       // back to the preview screen" / "doesn't store". The photo WAS
       // captured, it just wasn't committed to state.imageDataUrl (and the
       // Analyze button stayed disabled) until a second, easy-to-miss tap.
-      // Capture now stores the photo immediately on a successful capture —
-      // matching how "Upload from Gallery" already behaves (one tap, no
-      // confirm step) — so the very next thing the client sees is the
-      // stored preview with the Analyze button enabled. Retaking is still
-      // available via the same "×" remove button setImageFromDataUrl()
-      // already adds to every stored preview.
+      //
+      // FIX (round 4): Capture now goes canvas -> Blob -> File and hands
+      // that File to the exact same handleFile() that "Upload from Gallery"
+      // already uses, instead of writing to state.imageDataUrl directly.
+      // That guarantees the captured photo lands in the exact same
+      // selected-image variable (state.imageFile / state.imageDataUrl) via
+      // the exact same code path as a gallery upload — no parallel,
+      // possibly-diverging logic for the two sources.
       if (captureBtn.disabled) return;
+      console.log("[AI Skin Analysis] capture button clicked");
       captureBtn.disabled = true;
       captureBtn.textContent = "Capturing…";
       try {
         await waitForVideoFrame(1500);
+        console.log("[AI Skin Analysis] video width/height", videoEl.videoWidth, videoEl.videoHeight);
         if (!videoEl.videoWidth || !videoEl.videoHeight) {
           throw new Error("Camera frame not ready yet");
         }
         // Crop to the same frame the client just saw in the live preview
         // (see captureCroppedFrame's comment + CAPTURE_ASPECT_RATIO above)
         // instead of grabbing the full raw camera stream.
-        const dataUrl = captureCroppedFrame(videoEl);
+        const blob = await captureCroppedFrame(videoEl);
+        const file = new File([blob], `selfie-${Date.now()}.jpg`, { type: "image/jpeg" });
+        console.log("[AI Skin Analysis] file created", file.name, file.size, file.type);
         stopActiveCamera();
         liveArea.hidden = true;
         uploadActions.hidden = false;
-        state.imageFile = null;
-        setImageFromDataUrl(dataUrl);
+        handleFile(file);
         captureBtn.disabled = false;
         captureBtn.textContent = captureBtnDefaultLabel;
       } catch (err) {
-        console.error("Photo capture failed:", err);
+        console.error("[AI Skin Analysis] Photo capture failed:", err);
         showCameraCaptureError();
         captureBtn.disabled = false;
         captureBtn.textContent = captureBtnDefaultLabel;
@@ -556,6 +588,7 @@
     libraryInput.addEventListener("change", (e) => handleFile(e.target.files[0]));
 
     continueBtn.addEventListener("click", () => {
+      console.log("[AI Skin Analysis] form submitted with image:", !!state.imageDataUrl);
       stopActiveCamera();
       state.step = "analyzing";
       render();
