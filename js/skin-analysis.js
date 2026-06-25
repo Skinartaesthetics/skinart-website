@@ -20,7 +20,15 @@
     BOOKING_URL: "https://skinart.glossgenius.com/services",
     ANALYZE_ENDPOINT: "/api/analyze-skin",
     SCHEDULE_CLICK_ENDPOINT: "/api/track-schedule-click",
+    TRACK_EVENT_ENDPOINT: "/api/track-event",
   };
+
+  // Fixed, non-AI-generated retake copy — kept as a hardcoded constant (like
+  // the backend's STANDARD_NEXT_STEP) so this client-facing message can
+  // never drift into a critical/alarming tone, regardless of what the AI's
+  // own short `reason` text says.
+  const RETAKE_MESSAGE =
+    "Let’s retake this for a more accurate SkinArt analysis. Please upload or snap a clear, makeup-free selfie in natural light, facing the camera directly. Avoid filters, shadows, sunglasses, masks, and heavy cropping so we can better assess your visible skin concerns.";
 
   const ICONS = {
     sparkle:
@@ -102,6 +110,8 @@
     imageDataUrl: null,
     imageFile: null,
     analysis: null,
+    findings: null,
+    treatmentMatch: null,
     needsRetake: false,
     retakeReason: null,
     scheduleClicked: false,
@@ -122,6 +132,17 @@
     return String(str || "").replace(/[&<>"']/g, (c) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
     }[c]));
+  }
+
+  // Fire-and-forget analytics ping — same pattern as notifyScheduleClick()
+  // below. Never throws, never blocks the UI; if analytics isn't configured
+  // server-side, /api/track-event still always responds 200.
+  function trackEvent(eventName) {
+    fetch(CONFIG.TRACK_EVENT_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event_name: eventName }),
+    }).catch(() => {});
   }
 
   /* ---------------- Build floating bubble ---------------- */
@@ -316,27 +337,12 @@
   /* ---------------- Step 4: Selfie upload ---------------- */
   function renderUpload(dots) {
     stopActiveCamera();
-
-    // A backend photo-quality flag (needsRetake, set in runAnalysis()) routes
-    // back to this same step with contact info intact and only the image
-    // cleared — "Take a Photo" / "Upload from Gallery" below already double
-    // as "Retake Photo" / "Upload Different Photo", so we just show a
-    // one-time soft notice instead of a whole separate screen.
-    const retakeNoticeHtml = state.needsRetake
-      ? `<div class="ai-disclaimer-box" style="margin-bottom:1em;">${escapeHtml(
-          state.retakeReason ||
-            "Let's retake this for a clearer analysis. Please take or upload a new selfie in natural light, facing the camera directly."
-        )}</div>`
-      : "";
-    state.needsRetake = false;
-    state.retakeReason = null;
-
     bodyEl.innerHTML = `
       <div class="ai-step">
         ${dots}
         <h3>Your selfie</h3>
-        <p>Please upload or snap a clear, makeup-free selfie in natural light. Face the camera directly, avoid filters, and make sure your skin is fully visible.</p>
-        ${retakeNoticeHtml}
+        <p>Please upload or snap a selfie for your complimentary skin analysis.</p>
+        <p class="ai-upload-hint" style="margin:0 0 1.2em;">For best results: use natural light, face the camera directly, remove makeup if possible, avoid filters, and keep your full face visible.</p>
 
         <div class="ai-camera-live" id="ai-camera-live" hidden>
           <video id="ai-camera-video" autoplay playsinline muted></video>
@@ -592,6 +598,10 @@
   async function runAnalysis() {
     console.log("[AI Skin Analysis] submit started", !!state.imageDataUrl);
     let analysis = null;
+    let findings = null;
+    let treatmentMatch = null;
+    let needsRetake = false;
+    let retakeReason = null;
 
     // Single call to our own serverless endpoint — it validates the lead's
     // info, calls OpenAI server-side, emails the lead to the studio, and
@@ -611,35 +621,35 @@
 
       const data = await res.json();
 
-      // The backend's own photo-quality check (run server-side, after the
-      // image has already been received and stored for this submission)
-      // can ask for a retake. Route back to the upload step with contact
-      // info intact and only the image cleared — "Take a Photo" / "Upload
-      // from Gallery" there double as "Retake Photo" / "Upload Different
-      // Photo".
+      // The backend checks photo quality before producing an analysis. If
+      // it flagged the photo, we route to a dedicated retake screen instead
+      // of treating this as a generic failure — this check comes first so
+      // it can never be masked by the generic fallback message below.
       if (data && data.needsRetake) {
-        state.needsRetake = true;
-        state.retakeReason = typeof data.reason === "string" ? data.reason : null;
-        state.imageDataUrl = null;
-        state.imageFile = null;
-        state.step = "upload";
-        render();
-        return;
-      }
-
-      // The backend always normalizes the report to ONE string field: analysis.
-      // (Regardless of what it might be called internally — report/result/
-      // message/aiAnalysis — the widget only ever reads `data.analysis`.)
-      if (!res.ok || !data.analysisAvailable || !data.analysis || typeof data.analysis !== "string") {
+        needsRetake = true;
+        retakeReason = typeof data.reason === "string" ? data.reason : null;
+      } else if (!res.ok || !data.analysisAvailable || !data.analysis || typeof data.analysis !== "string") {
+        // The backend always normalizes the full report to ONE string field:
+        // analysis — that's the fallback this widget can always render from.
+        // `findings` and `treatmentMatch` are newer, additive fields that let
+        // renderResults() show a nicer, sectioned layout when present; if
+        // they're ever missing (e.g. an older deploy), the widget still works
+        // off `analysis` alone.
         console.error("Analyze-skin endpoint returned no usable analysis:", data);
       } else {
         analysis = data.analysis;
+        findings = typeof data.findings === "string" ? data.findings : null;
+        treatmentMatch = data.treatmentMatch && typeof data.treatmentMatch === "object" ? data.treatmentMatch : null;
       }
     } catch (err) {
       console.error("Analyze-skin request failed:", err);
     }
 
     state.analysis = analysis;
+    state.findings = findings;
+    state.treatmentMatch = treatmentMatch;
+    state.needsRetake = needsRetake;
+    state.retakeReason = retakeReason;
     state.step = "results";
     render();
   }
@@ -663,24 +673,141 @@
       .filter(Boolean);
   }
 
-  function renderResults() {
-    const sections = parseAnalysisSections(state.analysis);
-    const hasReport = sections.length > 0;
+  // Renders the "Your SkinArt Treatment Match" card — primary match, why it
+  // may fit, up to 2 secondary options, and the recommended next step. Only
+  // called when the backend sent a valid treatmentMatch object.
+  function renderTreatmentMatchHtml(match) {
+    const secondary = Array.isArray(match.secondary) ? match.secondary : [];
+    const secondaryHtml = secondary.length
+      ? `
+        <div class="ai-treatment-secondary">
+          <h4>Secondary Options</h4>
+          <ul>
+            ${secondary
+              .map((s) => `<li><strong>${escapeHtml(s.name)}</strong> — ${escapeHtml(s.reason)}</li>`)
+              .join("")}
+          </ul>
+        </div>
+      `
+      : "";
 
-    const reportHtml = hasReport
-      ? sections
-          .map(([label, content]) => `
-            <div class="ai-result-section">
-              <h4>${escapeHtml(label)}</h4>
-              <p>${escapeHtml(content)}</p>
-            </div>
-          `)
-          .join("")
-      : `<div class="ai-error-box">Instant results aren't quite ready yet on our end — but don't worry, your photo and details have already been sent to our team. An esthetician will personally review your submission and follow up with recommendations.</div>`;
+    return `
+      <div class="ai-treatment-match">
+        <h3>Your SkinArt Treatment Match</h3>
+        <div class="ai-treatment-primary">
+          <div class="ai-treatment-label">${match.fellBack ? "Suggested Starting Point" : "Primary Match"}</div>
+          <div class="ai-treatment-name">${escapeHtml(match.primaryName)}</div>
+        </div>
+        <div class="ai-treatment-why">
+          <h4>Why This Treatment May Fit</h4>
+          <p>${escapeHtml(match.primaryReason)}</p>
+        </div>
+        ${secondaryHtml}
+        <div class="ai-treatment-next">
+          <h4>Recommended Next Step</h4>
+          <p>${escapeHtml(match.nextStep)}</p>
+        </div>
+      </div>
+    `;
+  }
+
+  // Shown instead of the normal results screen when the backend's photo
+  // quality check flagged the selfie (too dark, blurry, filtered, cropped,
+  // angled, obstructed, etc.). Keeps the same calm, boxed-disclaimer styling
+  // used elsewhere in the widget — never the alarming red ".ai-error-box"
+  // treatment — and still preserves the Schedule Appointment CTA so a client
+  // can always skip ahead to an in-person consultation instead.
+  function renderRetakeNeeded() {
+    const reasonHtml = state.retakeReason
+      ? `<p style="font-size:.85rem;">${escapeHtml(state.retakeReason)}</p>`
+      : "";
 
     bodyEl.innerHTML = `
       <div class="ai-step">
-        <h3>Your Preliminary Results</h3>
+        <h3>Let's retake this for a more accurate analysis</h3>
+        <div class="ai-disclaimer-box">${escapeHtml(RETAKE_MESSAGE)}</div>
+        ${reasonHtml}
+        <button class="ai-btn" id="ai-retake-btn">Retake Photo</button>
+        <button class="ai-btn ai-btn-ghost" id="ai-reupload-btn" style="margin-top:.6em;">Upload Different Photo</button>
+
+        <p style="font-size:.85rem; margin-top:1.2em;">Prefer to skip ahead? Schedule your appointment and your esthetician can assess your skin in person.</p>
+        <a class="ai-btn ai-btn-ghost" id="ai-schedule-btn" href="${CONFIG.BOOKING_URL}" target="_blank" rel="noopener">Schedule Appointment</a>
+        <button class="ai-btn ai-btn-ghost" id="ai-chat-done" style="margin-top:.6em;">Close</button>
+      </div>
+    `;
+
+    function backToUpload() {
+      state.needsRetake = false;
+      state.retakeReason = null;
+      state.imageDataUrl = null;
+      state.imageFile = null;
+      state.step = "upload";
+      render();
+    }
+
+    bodyEl.querySelector("#ai-retake-btn").addEventListener("click", () => {
+      trackEvent("photo_retake_clicked");
+      backToUpload();
+    });
+    bodyEl.querySelector("#ai-reupload-btn").addEventListener("click", () => {
+      trackEvent("photo_reuploaded");
+      backToUpload();
+    });
+    bodyEl.querySelector("#ai-schedule-btn").addEventListener("click", () => {
+      state.scheduleClicked = true;
+      notifyScheduleClick();
+    });
+    bodyEl.querySelector("#ai-chat-done").addEventListener("click", closeChat);
+  }
+
+  function renderResults() {
+    if (state.needsRetake) return renderRetakeNeeded();
+
+    const hasTreatmentMatch = !!(state.treatmentMatch && state.treatmentMatch.primaryName);
+
+    let reportHtml;
+    if (hasTreatmentMatch) {
+      // Newer, sectioned layout: findings grouped under their own heading,
+      // then a dedicated treatment-match card.
+      const findingsSections = parseAnalysisSections(state.findings || state.analysis);
+      const findingsHtml = findingsSections.length
+        ? findingsSections
+            .map(([label, content]) => `
+              <div class="ai-result-section">
+                <h4>${escapeHtml(label)}</h4>
+                <p>${escapeHtml(content)}</p>
+              </div>
+            `)
+            .join("")
+        : "";
+
+      reportHtml = `
+        <h3>Your Preliminary Skin Findings</h3>
+        ${findingsHtml}
+        ${renderTreatmentMatchHtml(state.treatmentMatch)}
+      `;
+    } else {
+      // Fallback: original generic rendering, unchanged — used if the AI
+      // analysis wasn't available or the backend didn't send a treatment
+      // match for some reason. This path is intentionally identical to the
+      // widget's original behavior so nothing breaks.
+      const sections = parseAnalysisSections(state.analysis);
+      const hasReport = sections.length > 0;
+      reportHtml = hasReport
+        ? `<h3>Your Preliminary Results</h3>` +
+          sections
+            .map(([label, content]) => `
+              <div class="ai-result-section">
+                <h4>${escapeHtml(label)}</h4>
+                <p>${escapeHtml(content)}</p>
+              </div>
+            `)
+            .join("")
+        : `<h3>Your Preliminary Results</h3><div class="ai-error-box">Instant results aren't quite ready yet on our end — but don't worry, your photo and details have already been sent to our team. An esthetician will personally review your submission and follow up with recommendations.</div>`;
+    }
+
+    bodyEl.innerHTML = `
+      <div class="ai-step">
         ${reportHtml}
 
         <p style="font-size:.85rem;">Ready for a professional skin plan? Schedule your appointment and let's create a treatment protocol designed around your skin.</p>
