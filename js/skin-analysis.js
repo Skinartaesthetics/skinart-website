@@ -29,6 +29,69 @@
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z"/><circle cx="12" cy="14" r="3.4"/></svg>',
   };
 
+  // IMPORTANT — this MUST match the `aspect-ratio` set on .ai-camera-live
+  // and .ai-preview-wrap in css/skin-analysis.css (both use object-fit:
+  // cover at this same ratio). If this ratio ever changes, update the CSS
+  // too, or the live preview and the captured photo will frame the face
+  // differently.
+  const CAPTURE_ASPECT_RATIO = 4 / 5;
+  const CAPTURE_OUTPUT_WIDTH = 960;
+  const CAPTURE_OUTPUT_HEIGHT = Math.round(CAPTURE_OUTPUT_WIDTH / CAPTURE_ASPECT_RATIO);
+
+  // Takes the live <video> element and returns a Promise<Blob> containing
+  // only the same center-cropped region the client sees on screen (the box
+  // is `object-fit: cover` at CAPTURE_ASPECT_RATIO), instead of the full raw
+  // camera frame — keeps the captured photo's framing identical to the live
+  // preview the client actually saw.
+  function captureCroppedFrame(videoEl) {
+    const vw = videoEl.videoWidth || 640;
+    const vh = videoEl.videoHeight || Math.round(640 / CAPTURE_ASPECT_RATIO);
+    const videoAspect = vw / vh;
+
+    let sx, sy, sw, sh;
+    if (videoAspect > CAPTURE_ASPECT_RATIO) {
+      sh = vh;
+      sw = vh * CAPTURE_ASPECT_RATIO;
+      sx = (vw - sw) / 2;
+      sy = 0;
+    } else {
+      sw = vw;
+      sh = vw / CAPTURE_ASPECT_RATIO;
+      sx = 0;
+      sy = (vh - sh) / 2;
+    }
+
+    // Clamp to the video's actual bounds — floating-point rounding can push
+    // a source rect a hair past the real video dimensions on some browsers,
+    // and drawImage() throws IndexSizeError rather than tolerating it, which
+    // previously surfaced as a silent capture failure.
+    sx = Math.max(0, Math.min(sx, vw));
+    sy = Math.max(0, Math.min(sy, vh));
+    sw = Math.max(1, Math.min(sw, vw - sx));
+    sh = Math.max(1, Math.min(sh, vh - sy));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = CAPTURE_OUTPUT_WIDTH;
+    canvas.height = CAPTURE_OUTPUT_HEIGHT;
+    canvas
+      .getContext("2d")
+      .drawImage(videoEl, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("Canvas toBlob returned null"));
+            return;
+          }
+          resolve(blob);
+        },
+        "image/jpeg",
+        0.9
+      );
+    });
+  }
+
   /* ---------------- State ---------------- */
   const state = {
     step: "welcome",
@@ -39,6 +102,8 @@
     imageDataUrl: null,
     imageFile: null,
     analysis: null,
+    needsRetake: false,
+    retakeReason: null,
     scheduleClicked: false,
   };
 
@@ -49,6 +114,7 @@
     if (activeCameraStream) {
       activeCameraStream.getTracks().forEach((t) => t.stop());
       activeCameraStream = null;
+      console.log("[AI Skin Analysis] camera stopped");
     }
   }
 
