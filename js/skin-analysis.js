@@ -466,32 +466,6 @@
       });
     }
 
-    // Shows the just-captured frame with "Use This Photo" / "Retake Photo"
-    // so the client confirms the exact frame they saw before it's submitted
-    // — they can always back out and re-open the live camera instead of
-    // being stuck with a bad take.
-    function showCaptureConfirm(dataUrl) {
-      uploadActions.hidden = true;
-      previewArea.innerHTML = `
-        <div class="ai-preview-wrap">
-          <img src="${dataUrl}" alt="Captured selfie preview">
-        </div>
-        <div class="ai-upload-actions">
-          <button class="ai-btn" id="ai-use-photo-btn">Use This Photo</button>
-          <button class="ai-btn ai-btn-ghost" id="ai-retake-capture-btn">Retake Photo</button>
-        </div>
-      `;
-      previewArea.querySelector("#ai-use-photo-btn").addEventListener("click", () => {
-        state.imageFile = null;
-        uploadActions.hidden = false;
-        setImageFromDataUrl(dataUrl);
-      });
-      previewArea.querySelector("#ai-retake-capture-btn").addEventListener("click", () => {
-        previewArea.innerHTML = "";
-        openLiveCamera();
-      });
-    }
-
     bodyEl.querySelector("#ai-camera-btn").addEventListener("click", openLiveCamera);
     bodyEl.querySelector("#ai-library-btn").addEventListener("click", () => libraryInput.click());
 
@@ -526,13 +500,29 @@
       // still 0, and canvas drawImage() throws in that case — silently,
       // since there was no try/catch here. That uncaught error is exactly
       // why "Capture" looked like it did nothing: the click fired, the
-      // frame was never actually drawn, and showCaptureConfirm() never ran.
+      // frame was never actually drawn.
       // Now we explicitly await a real decoded frame first, guard against a
       // still-zero video size, and surface a clear, VISIBLE retry message
       // instead of failing silently. We also flip the button's own label to
       // "Capturing…" the instant it's tapped, so there's never a moment
       // where the tap visibly does nothing while the (usually instant, but
       // up to 1.5s worst-case) frame-readiness check runs.
+      //
+      // FIX (round 3): Capture used to hand the frame to an intermediate
+      // "Use This Photo" / "Retake Photo" confirm screen instead of storing
+      // it right away. That confirm screen reused the same 4:5 photo box as
+      // the live camera, so after tapping Capture the client saw what looked
+      // like the exact same preview box again with no live video in it —
+      // reported as "it clicks as if it captures but then goes straight
+      // back to the preview screen" / "doesn't store". The photo WAS
+      // captured, it just wasn't committed to state.imageDataUrl (and the
+      // Analyze button stayed disabled) until a second, easy-to-miss tap.
+      // Capture now stores the photo immediately on a successful capture —
+      // matching how "Upload from Gallery" already behaves (one tap, no
+      // confirm step) — so the very next thing the client sees is the
+      // stored preview with the Analyze button enabled. Retaking is still
+      // available via the same "×" remove button setImageFromDataUrl()
+      // already adds to every stored preview.
       if (captureBtn.disabled) return;
       captureBtn.disabled = true;
       captureBtn.textContent = "Capturing…";
@@ -547,7 +537,11 @@
         const dataUrl = captureCroppedFrame(videoEl);
         stopActiveCamera();
         liveArea.hidden = true;
-        showCaptureConfirm(dataUrl);
+        uploadActions.hidden = false;
+        state.imageFile = null;
+        setImageFromDataUrl(dataUrl);
+        captureBtn.disabled = false;
+        captureBtn.textContent = captureBtnDefaultLabel;
       } catch (err) {
         console.error("Photo capture failed:", err);
         showCameraCaptureError();
