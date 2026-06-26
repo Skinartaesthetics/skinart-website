@@ -20,12 +20,12 @@
   --white: #fffdfb;
   --ink: #2b2b2b;
   --ink-soft: #363d29;
-  /* Darkened from the original #6f7a63 — that shade only hit ~3.1:1 against
-     --cream and ~4.1:1 against --cream-light as text, both under the WCAG AA
-     4.5:1 minimum for normal-size text. This tone keeps the same sage hue
-     but clears 4.5:1+ everywhere it's used as text (eyebrows, prices,
-     buttons, labels). */
-  --gold: #545d4b;
+  /* Same sage hue as the original brand green (#6f7a63), lightened as far
+     as it can go while still clearing the WCAG AA 4.5:1 text-contrast
+     minimum against --cream — that's the tightest spot this color is used
+     in as text (eyebrow labels sitting directly on tan section
+     backgrounds). #545d4b was the prior, more conservative shade. */
+  --gold: #58604e;
   --gold-light: #b7a99a;
   --maroon: #363d29;
   --line: #e6d3c2;
@@ -301,10 +301,14 @@ nav.main-nav a:hover { color: var(--gold-light); }
     position: fixed;
     top: 0;
     right: 0;
-    bottom: 0;
-    width: 60%;
+    /* height is content-driven (not a forced top:0/bottom:0 full-height
+       panel), so the gradient background ends right after the last link
+       (Policies) instead of stretching empty color down to the bottom of
+       the screen. max-height + overflow-y keeps it scrollable if content
+       ever exceeds the viewport on a short phone. */
+    max-height: 100vh;
+    width: 80%;
     min-width: 260px;
-    max-width: 320px;
     background: linear-gradient(165deg, var(--cream-light) 0%, var(--cream) 140%);
     flex-direction: column;
     align-items: flex-start;
@@ -356,6 +360,11 @@ nav.main-nav a:hover { color: var(--gold-light); }
     padding: .85em 1em;
     font-size: .76rem;
     letter-spacing: .1em;
+    /* nav.main-nav a (below) is more specific than .btn-solid's base
+       color rule, so without this override these buttons silently
+       rendered with dark ink text on the green button — ~2.16:1
+       contrast, failing WCAG AA. Restore the intended light text. */
+    color: var(--white);
   }
   nav.main-nav a {
     display: flex;
@@ -384,6 +393,17 @@ nav.main-nav a:hover { color: var(--gold-light); }
     padding-left: 32px;
     background: rgba(110, 122, 99, .07);
   }
+  /* Same specificity collision as above: the generic plain-link hover/
+     focus state (and its arrow glyph) would otherwise bleed into these
+     buttons too, replacing the solid button look with a near-invisible
+     wash and gold-on-cream text. Restore the intended button hover. */
+  .mobile-nav-cta .btn:hover,
+  .mobile-nav-cta .btn:focus-visible {
+    color: var(--white);
+    background: var(--ink);
+    padding-left: 1em;
+  }
+  .mobile-nav-cta .btn::after { content: none; }
   nav.main-nav a:hover::after,
   nav.main-nav a:focus-visible::after {
     opacity: 1;
