@@ -20,7 +20,12 @@
   --white: #fffdfb;
   --ink: #2b2b2b;
   --ink-soft: #363d29;
-  --gold: #6f7a63;
+  /* Darkened from the original #6f7a63 — that shade only hit ~3.1:1 against
+     --cream and ~4.1:1 against --cream-light as text, both under the WCAG AA
+     4.5:1 minimum for normal-size text. This tone keeps the same sage hue
+     but clears 4.5:1+ everywhere it's used as text (eyebrows, prices,
+     buttons, labels). */
+  --gold: #545d4b;
   --gold-light: #b7a99a;
   --maroon: #363d29;
   --line: #e6d3c2;
@@ -137,7 +142,9 @@ img { max-width: 100%; display: block; }
   padding: .6em 28px;
   flex-wrap: wrap;
 }
-.topbar a:hover { color: var(--gold-light); }
+/* var(--gold), not --gold-light — the topbar background is light (cream),
+   and --gold-light only reaches ~2:1 contrast there, well under WCAG AA. */
+.topbar a:hover { color: var(--gold); }
 
 /* ---------- Header / Nav ---------- */
 .site-header {
@@ -422,11 +429,6 @@ nav.main-nav a:hover { color: var(--gold-light); }
   overflow: hidden;
   box-shadow: inset 0 -18px 24px -22px rgba(46,40,35,.18);
 }
-.hero .face-art {
-  position: absolute;
-  opacity: .28;
-}
-.hero .face-art.left { left: -40px; top: 30px; width: 160px; transform: rotate(-8deg); }
 .hero-grid {
   display: grid;
   grid-template-columns: 1.05fr .95fr;
@@ -450,14 +452,14 @@ nav.main-nav a:hover { color: var(--gold-light); }
    pinned reveal. Only applied where a section is explicitly marked for it.
    top: 210px clears the desktop header (110px logo + nav-bar row); the
    ≤860px override below uses the shorter mobile header height instead. */
-.pin-photo { position: sticky; top: 210px; z-index: 1; }
+.pin-photo { position: sticky; top: 150px; z-index: 1; }
 @media (max-width: 860px) {
   .hero-grid { grid-template-columns: 1fr; gap: 2.5em; text-align: center; }
   .hero-inner { max-width: 100%; margin: 0 auto; text-align: center; }
   .hero .lede { margin: 0 auto 2em; }
   .hero-actions { justify-content: center; }
   .hero-photo { margin: 0 auto; max-width: 280px; }
-  .pin-photo { top: 70px; }
+  .pin-photo { top: 50px; }
 }
 
 .page-hero {
@@ -886,7 +888,9 @@ form.contact-form select:focus,
 form.contact-form textarea:focus {
   outline: none;
   border-color: var(--gold-light);
-  box-shadow: inset 0 2px 4px -2px rgba(46,40,35,.12), 0 0 0 3px rgba(169,128,90,.15);
+  /* Focus ring bumped from .15 to .4 alpha — the old value was barely
+     visible, which fails WCAG 2.4.7 (focus must be clearly visible). */
+  box-shadow: inset 0 2px 4px -2px rgba(46,40,35,.12), 0 0 0 3px rgba(169,128,90,.4);
 }
 form.contact-form textarea { resize: vertical; min-height: 110px; }
 form.contact-form button { align-self: flex-start; cursor: pointer; }
@@ -989,7 +993,9 @@ footer.site-footer {
   margin-bottom: 3em;
 }
 @media (max-width: 860px) { .footer-grid { grid-template-columns: 1fr; gap: 2em; } }
-footer.site-footer h4 {
+/* h3, not h4 — every page's main content ends on an h2, so jumping to h4
+   here skipped a heading level (WCAG 1.3.1) on every single page. */
+footer.site-footer h3 {
   color: var(--cream-light);
   font-size: .8rem;
   letter-spacing: .14em;
@@ -1040,7 +1046,9 @@ footer.site-footer .footer-links-cols { display: grid; grid-template-columns: 1f
 .blog-card .blog-date {
   font-family: 'Jost', sans-serif;
   font-size: .78rem;
-  color: var(--gold-light);
+  /* var(--gold), not --gold-light — this sits on a light card background,
+     where --gold-light fails WCAG AA text contrast (~2:1). */
+  color: var(--gold);
 }
 .blog-card .price-row { align-items: baseline; }
 .blog-card .body h3 { font-size: 1.18rem; }
@@ -1071,7 +1079,8 @@ footer.site-footer .footer-links-cols { display: grid; grid-template-columns: 1f
   font-size: .78rem;
   letter-spacing: .08em;
   text-transform: uppercase;
-  color: var(--gold-light);
+  /* var(--gold), not --gold-light — same light-background contrast issue. */
+  color: var(--gold);
   margin-bottom: 1.6em;
 }
 .blog-back-link {

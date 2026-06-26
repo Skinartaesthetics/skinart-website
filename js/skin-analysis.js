@@ -307,7 +307,7 @@
       previewArea.innerHTML = `
         <div class="ai-preview-wrap">
           <img src="${dataUrl}" alt="Your selfie preview">
-          <button class="ai-preview-remove" id="ai-preview-remove">&times;</button>
+          <button class="ai-preview-remove" id="ai-preview-remove" aria-label="Remove photo">&times;</button>
         </div>
       `;
       previewArea.querySelector("#ai-preview-remove").addEventListener("click", () => {
