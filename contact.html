@@ -116,8 +116,9 @@
       <p>Fill out the form and we'll follow up to find a time that works. For faster booking, call or email us directly.</p>
     </div>
     <div style="max-width:680px; margin:0 auto;">
-      <!-- NOTE: This is a static form. Connect it to a form service (e.g. Formspree, Netlify Forms)
-           or your booking platform so submissions actually reach your inbox. -->
+      <!-- Submissions are sent via js/contact-form.js to /api/send-contact,
+           which emails the studio through Resend. action="#" is left as a
+           no-JS fallback only — see js/contact-form.js for the real handler. -->
       <form class="contact-form" action="#" method="POST">
         <div class="grid-2" style="gap:1.2em;">
           <div>
@@ -208,5 +209,6 @@
 <script src="js/analytics.js"></script>
 <script src="js/skin-analysis.js"></script>
 <script src="js/ga4-events.js"></script>
+<script src="js/contact-form.js"></script>
 </body>
 </html>
