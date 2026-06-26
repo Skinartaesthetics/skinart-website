@@ -210,6 +210,9 @@ img { max-width: 100%; display: block; }
   cursor: pointer;
   color: var(--maroon);
 }
+.nav-backdrop, .nav-close { display: none; }
+/* Locks background scroll while the mobile drawer is open. */
+html.menu-open, body.menu-open { overflow: hidden; }
 .nav-bar {
   background: var(--ink);
 }
@@ -238,66 +241,174 @@ nav.main-nav a {
 nav.main-nav a.active { color: var(--gold-light); }
 nav.main-nav a:hover { color: var(--gold-light); }
 
+/* "Book Consultation" / "Schedule an Appointment" duplicated into the
+   mobile dropdown menu (see nav.main-nav markup) so they can be pulled out
+   of the sticky header on small screens. Hidden by default — desktop's
+   nav.main-nav is a permanent horizontal bar, not a dropdown, so this must
+   stay off there and only switch on inside the ≤1080px dropdown below. */
+.mobile-nav-cta { display: none; }
+
 @media (max-width: 1080px) {
   /* minmax(0, ...) lets each track shrink below its content's natural
-     width instead of "blowing out" the row when the logo text and the CTA
-     buttons can't both fit at full size — without this, narrow phones were
-     pushing the buttons past the right edge of the screen. */
-  .nav-wrap { grid-template-columns: minmax(0, auto) minmax(0, 1fr); padding: 1em 18px; align-items: stretch; }
-  .nav-wrap .logo { grid-column: 1; justify-self: start; min-width: 0; height: 100%; }
+     width instead of "blowing out" the row when the logo text can't fit at
+     full size — without this, narrow phones were pushing things past the
+     right edge of the screen. */
+  .nav-wrap { grid-template-columns: minmax(0, auto) minmax(0, 1fr); padding: .65em 18px; align-items: center; }
+  .nav-wrap .logo { grid-column: 1; justify-self: start; min-width: 0; }
   .nav-wrap .nav-cta { grid-column: 2; justify-self: end; }
-  /* `align-items: stretch` above makes the logo's grid cell exactly as tall
-     as the nav-cta column (its 2 stacked buttons + social icons + the
-     hamburger menu button below them, since that's the taller column).
-     Sizing .logo-img to height:100% then makes the logo image's own top/
-     bottom land exactly at the top of "Book Consultation" and the bottom of
-     the hamburger button, rather than an estimated fixed pixel height. */
-  .logo-img { height: 100%; width: auto; max-width: 150px; }
-  .logo-text { font-size: 36px; line-height: 1.05; }
-  .logo-text .logo-script { font-size: 40px; }
-  .nav-cta { flex-direction: column; align-items: flex-end; gap: .5em; }
-  .nav-cta .btn { white-space: normal; text-align: center; }
-  .nav-social { justify-content: flex-end; }
-  .nav-bar { position: relative; }
+  /* Logo artwork is capped so it never grows taller than the "SkinArt
+     Aesthetics" text logo beside it — the two-line text block (22px line +
+     26px script line, see below) renders at roughly 46px tall, so 40px
+     keeps the image comfortably at or under that. */
+  .logo-img { height: 40px; width: auto; max-width: 120px; }
+  .logo-text { font-size: 22px; line-height: 1.05; }
+  .logo-text .logo-script { font-size: 26px; }
+  /* The two CTA buttons no longer live in the header itself on mobile —
+     they've moved into .mobile-nav-cta inside the dropdown below, so the
+     header row only has to fit the social icons + hamburger on one line. */
+  .nav-cta { flex-direction: row; align-items: center; gap: .6em; }
+  .nav-cta > .btn { display: none; }
+  .nav-social { justify-content: flex-end; align-items: center; gap: .4em; }
+  /* Bigger tap targets for accessibility — was 22px/19px, well under the
+     ~24-44px touch-target guidelines. */
+  .nav-social a { width: 38px; height: 38px; }
+  .nav-social a svg { width: 16px; height: 16px; }
+  /* Slide-out drawer from the right edge, with a dimming backdrop behind
+     it. Stays in the DOM (not display:none) so the transform transition
+     can animate it; translateX(100%) parks it fully off-screen when
+     closed. */
+  .nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 16, 14, .5);
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .35s ease, visibility .35s ease;
+    z-index: 150;
+  }
+  .nav-backdrop.open { opacity: 1; visibility: visible; }
   nav.main-nav {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
+    display: flex;
+    position: fixed;
+    top: 0;
     right: 0;
-    background: var(--cream-light);
+    bottom: 0;
+    width: 60%;
+    min-width: 260px;
+    max-width: 320px;
+    background: linear-gradient(165deg, var(--cream-light) 0%, var(--cream) 140%);
     flex-direction: column;
     align-items: flex-start;
     gap: 0;
     padding: 0;
+    box-shadow: -20px 0 40px -18px rgba(46,40,35,.45);
+    transform: translateX(100%);
+    transition: transform .4s cubic-bezier(.16,1,.3,1);
+    z-index: 200;
+    overflow-y: auto;
+  }
+  nav.main-nav.open { transform: translateX(0); }
+  .nav-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-end;
+    width: 36px;
+    height: 36px;
+    margin: 20px 22px 4px 0;
+    background: transparent;
+    border: 1px solid var(--gold-light);
+    border-radius: 50%;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: var(--ink);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: border-color .25s ease, color .25s ease, transform .25s ease;
+  }
+  .nav-close:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+    transform: rotate(90deg);
+  }
+  /* Primary call-to-action panel pinned to the top of the dropdown,
+     visually set apart from the plain page links below it. */
+  .mobile-nav-cta {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: .7em;
+    padding: .6em 26px 1.4em;
     border-bottom: 1px solid var(--line);
   }
-  nav.main-nav.open { display: flex; }
+  .mobile-nav-cta .btn {
+    width: 100%;
+    text-align: center;
+    padding: .85em 1em;
+    font-size: .76rem;
+    letter-spacing: .1em;
+  }
   nav.main-nav a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: .82rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
     color: var(--ink);
-    padding: .9em 28px;
+    padding: 1em 26px;
     width: 100%;
     border-top: 1px solid var(--line);
+    transition: color .2s ease, padding-left .2s ease, background .2s ease;
   }
-  nav.main-nav a.active { color: var(--gold); }
-  .menu-toggle { display: block; }
+  nav.main-nav a::after {
+    content: '\203A';
+    font-size: 1.05rem;
+    color: var(--gold-light);
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity .2s ease, transform .2s ease;
+  }
+  nav.main-nav a:hover,
+  nav.main-nav a:focus-visible {
+    color: var(--gold);
+    padding-left: 32px;
+    background: rgba(110, 122, 99, .07);
+  }
+  nav.main-nav a:hover::after,
+  nav.main-nav a:focus-visible::after {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  nav.main-nav a.active { color: var(--gold); font-weight: 500; }
+  nav.main-nav a.active::after { content: '\2022'; opacity: 1; color: var(--gold); }
+  .menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+  }
 }
 
 @media (max-width: 480px) {
-  /* Phone-width header: shrink the CTA buttons enough that the logo and
-     "Book Consultation" reliably sit on the same row without the buttons
-     getting pushed off the right edge of the screen. The logo image still
-     stretches to height:100% (inherited from the 1080px breakpoint above)
-     so it keeps matching the nav-cta column's full height at this width too. */
-  .nav-wrap { padding: .85em 14px; }
-  .logo { gap: .6em; }
-  .logo-img { max-width: 110px; }
-  .logo-text { font-size: 26px; }
-  .logo-text .logo-script { font-size: 29px; }
+  /* Phone-width header: keep the row compact and tap targets ample, with
+     the logo still capped to the text logo's height (text block now ~37px
+     tall at these smaller sizes, so the 32px image stays under it). */
+  .nav-wrap { padding: .55em 14px; }
+  .logo { gap: .5em; }
+  .logo-img { height: 32px; max-width: 90px; }
+  .logo-text { font-size: 18px; }
+  .logo-text .logo-script { font-size: 21px; }
   .logo-text, .logo-text .logo-script { overflow-wrap: anywhere; }
-  .nav-cta { gap: .35em; }
-  .nav-cta .btn { padding: .25em .8em; font-size: .56rem; letter-spacing: .08em; overflow-wrap: anywhere; }
-  .nav-social a { width: 19px; height: 19px; }
+  .nav-social a { width: 34px; height: 34px; }
+  .nav-social a svg { width: 14px; height: 14px; }
+  .menu-toggle { width: 34px; height: 34px; font-size: 1.4rem; }
+  .mobile-nav-cta { padding: 1em 18px 1.2em; gap: .5em; }
+  .mobile-nav-cta .btn { font-size: .72rem; padding: .7em 1em; }
 }
 
 /* ---------- Hero ---------- */
@@ -333,28 +444,57 @@ nav.main-nav a:hover { color: var(--gold-light); }
   margin-left: auto;
   aspect-ratio: 3 / 4;
 }
+/* Opt-in: photos marked .pin-photo (photo-first sections, e.g. "Meet Your
+   Esthetician" on the homepage) stay pinned just below the sticky header
+   while their section's text scrolls past underneath — an Apple.com-style
+   pinned reveal. Only applied where a section is explicitly marked for it.
+   top: 210px clears the desktop header (110px logo + nav-bar row); the
+   ≤860px override below uses the shorter mobile header height instead. */
+.pin-photo { position: sticky; top: 210px; z-index: 1; }
 @media (max-width: 860px) {
   .hero-grid { grid-template-columns: 1fr; gap: 2.5em; text-align: center; }
   .hero-inner { max-width: 100%; margin: 0 auto; text-align: center; }
   .hero .lede { margin: 0 auto 2em; }
   .hero-actions { justify-content: center; }
   .hero-photo { margin: 0 auto; max-width: 280px; }
+  .pin-photo { top: 70px; }
 }
 
 .page-hero {
   position: relative;
-  background-image:
-    radial-gradient(circle at 85% 0%, rgba(169,128,90,.22), transparent 55%),
-    linear-gradient(160deg, rgba(54,48,42,.88) 0%, rgba(28,24,20,.9) 100%),
-    var(--hero-img, none);
-  background-size: auto, auto, cover;
-  background-position: 85% 0%, center, var(--hero-pos, center);
-  background-repeat: no-repeat, no-repeat, no-repeat;
+  overflow: hidden;
   color: var(--cream-light);
   text-align: center;
   padding: 4.5em 0 3em;
-  box-shadow: inset 0 -22px 30px -26px rgba(0,0,0,.5);
 }
+/* Photo lives on its own layer (slightly overscanned via inset:-15%) so it
+   can be nudged with a translateY on mobile (see js/parallax.js) without
+   ever exposing empty space at the top/bottom edges. */
+.page-hero::before {
+  content: '';
+  position: absolute;
+  inset: -15% 0;
+  background-image: var(--hero-img, none);
+  background-size: cover;
+  background-position: var(--hero-pos, center);
+  z-index: 0;
+  transform: translateY(var(--parallax-offset, 0px));
+  will-change: transform;
+}
+/* Darkening tint + gold accent sit above the photo layer, below the text. */
+.page-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 85% 0%, rgba(169,128,90,.22), transparent 55%),
+    linear-gradient(160deg, rgba(54,48,42,.88) 0%, rgba(28,24,20,.9) 100%);
+  background-position: 85% 0%, center;
+  background-repeat: no-repeat, no-repeat;
+  box-shadow: inset 0 -22px 30px -26px rgba(0,0,0,.5);
+  z-index: 1;
+}
+.page-hero > .container { position: relative; z-index: 2; }
 .page-hero h1 { color: var(--cream-light); }
 .page-hero p { color: var(--line); }
 /* Eyebrow + script accents need a lighter, warmer tone on this dark
@@ -416,11 +556,13 @@ section { padding: 4.5em 0; }
 }
 .img-banner img {
   position: absolute;
-  inset: 0;
+  top: -15%;
+  left: 0;
   width: 100%;
-  height: 100%;
+  height: 130%;
   object-fit: cover;
   z-index: 0;
+  will-change: transform;
 }
 .img-banner::before {
   content: '';
@@ -453,9 +595,25 @@ section { padding: 4.5em 0; }
 }
 
 /* ---------- Scroll reveal ---------- */
-.reveal { opacity: 0; transform: translateY(20px); transition: opacity .7s ease, transform .7s ease; }
-.reveal.in { opacity: 1; transform: translateY(0); }
+/* Apple-like ease-out curve plus a subtle scale, used everywhere
+   (desktop and mobile) instead of the old plain linear-feeling ease. */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px) scale(.97);
+  transition: opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1);
+}
+.reveal.in { opacity: 1; transform: translateY(0) scale(1); }
 #privacy-policy, #terms-and-conditions { scroll-margin-top: 150px; }
+
+/* Anyone with "Reduce Motion" turned on gets the content instantly, with
+   no scroll-driven movement at all — this overrides the smooth-scroll,
+   reveal, parallax (js/parallax.js bails out too) and sticky-photo effects. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .page-hero::before, .cta-band::before, .img-banner img { transform: none !important; }
+  .pin-photo { position: static !important; }
+}
 
 /* ---------- Grids ---------- */
 .grid-3 {
@@ -539,18 +697,35 @@ section { padding: 4.5em 0; }
 /* ---------- CTA band ---------- */
 .cta-band {
   position: relative;
-  background-image:
-    radial-gradient(circle at 15% 100%, rgba(169,128,90,.22), transparent 55%),
-    linear-gradient(180deg, rgba(30,26,22,.86) 0%, rgba(28,24,20,.9) 100%),
-    var(--cta-img, none);
-  background-size: auto, auto, cover;
-  background-position: 15% 100%, center, var(--cta-pos, center);
-  background-repeat: no-repeat, no-repeat, no-repeat;
+  overflow: hidden;
   color: var(--cream-light);
   text-align: center;
   padding: 4em 0;
-  box-shadow: inset 0 18px 26px -22px rgba(0,0,0,.5);
 }
+.cta-band::before {
+  content: '';
+  position: absolute;
+  inset: -15% 0;
+  background-image: var(--cta-img, none);
+  background-size: cover;
+  background-position: var(--cta-pos, center);
+  z-index: 0;
+  transform: translateY(var(--parallax-offset, 0px));
+  will-change: transform;
+}
+.cta-band::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 15% 100%, rgba(169,128,90,.22), transparent 55%),
+    linear-gradient(180deg, rgba(30,26,22,.86) 0%, rgba(28,24,20,.9) 100%);
+  background-position: 15% 100%, center;
+  background-repeat: no-repeat, no-repeat;
+  box-shadow: inset 0 18px 26px -22px rgba(0,0,0,.5);
+  z-index: 1;
+}
+.cta-band > .container { position: relative; z-index: 2; }
 .cta-band h2 { color: var(--cream-light); }
 .cta-band p { color: var(--line); }
 

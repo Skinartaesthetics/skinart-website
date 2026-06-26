@@ -1,11 +1,42 @@
 document.addEventListener('DOMContentLoaded', function () {
   var toggle = document.querySelector('.menu-toggle');
   var nav = document.querySelector('.main-nav');
+  var backdrop = document.querySelector('.nav-backdrop');
+  var closeBtn = document.querySelector('.nav-close');
+
+  function openMenu() {
+    nav.classList.add('open');
+    if (backdrop) backdrop.classList.add('open');
+    document.documentElement.classList.add('menu-open');
+    document.body.classList.add('menu-open');
+  }
+  function closeMenu() {
+    nav.classList.remove('open');
+    if (backdrop) backdrop.classList.remove('open');
+    document.documentElement.classList.remove('menu-open');
+    document.body.classList.remove('menu-open');
+  }
+
   if (toggle && nav) {
     toggle.addEventListener('click', function () {
-      nav.classList.toggle('open');
+      if (nav.classList.contains('open')) {
+        closeMenu();
+      } else {
+        openMenu();
+      }
     });
   }
+  if (closeBtn && nav) {
+    closeBtn.addEventListener('click', closeMenu);
+  }
+  if (backdrop && nav) {
+    backdrop.addEventListener('click', closeMenu);
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && nav && nav.classList.contains('open')) {
+      closeMenu();
+    }
+  });
 
   var reveals = document.querySelectorAll('.reveal');
   if (reveals.length) {
