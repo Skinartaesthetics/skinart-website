@@ -1239,3 +1239,13 @@ footer.site-footer .footer-links-cols { display: grid; grid-template-columns: 1f
   color: var(--gold);
 }
 .blog-back-link:hover { color: var(--maroon); border-color: var(--maroon); }
+.blog-author-bio {
+  margin-top: 2.5em;
+  padding: 1.4em 1.6em;
+  background: var(--cream, #faf8f5);
+  border-left: 3px solid var(--gold);
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  line-height: 1.65;
+}
+.blog-author-bio strong { color: var(--dark); }
