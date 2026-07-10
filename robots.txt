@@ -3,4 +3,4 @@ Allow: /
 Disallow: /analytics.html
 Disallow: /api/
 
-Sitemap: https://skinartaesthetics.com/sitemap.xml
+Sitemap: https://www.skinartaesthetics.com/sitemap.xml
