@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytics | SkinArt Aesthetics (Admin)</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root{
+    --ink:#2a2520; --cream:#faf6f0; --gold:#a9824a; --gold-light:#c9a36b;
+    --line:#e4dccf; --maroon:#7a2e2e;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Jost', Arial, sans-serif; background:var(--cream); color:var(--ink);
+    padding:2.5em 1.2em 4em;
+  }
+  .wrap{ max-width:1080px; margin:0 auto; }
+  h1{ font-size:1.6rem; margin-bottom:.2em; }
+  .sub{ color:#7a7268; margin-bottom:2em; font-size:.92rem; }
+  .gate{
+    max-width:380px; margin:4em auto; background:#fff; border:1px solid var(--line);
+    border-radius:10px; padding:2em; text-align:center;
+  }
+  .gate input{
+    width:100%; padding:.7em .9em; border:1px solid var(--line); border-radius:6px;
+    font-size:1rem; margin:1em 0;
+  }
+  .gate button, .reload-btn{
+    background:var(--gold); color:#fff; border:none; padding:.7em 1.4em; border-radius:6px;
+    font-size:.95rem; cursor:pointer; letter-spacing:.02em;
+  }
+  .gate button:hover, .reload-btn:hover{ background:var(--maroon); }
+  .error-msg{ color:var(--maroon); font-size:.85rem; margin-top:.5em; min-height:1.2em; }
+  .cards{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:1em; margin-bottom:2.2em;
+  }
+  .card{
+    background:#fff; border:1px solid var(--line); border-radius:10px; padding:1.2em 1.3em;
+  }
+  .card .num{ font-size:1.7rem; font-weight:600; color:var(--maroon); }
+  .card .label{ font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; color:#8a8176; margin-top:.3em; }
+  .panel{
+    background:#fff; border:1px solid var(--line); border-radius:10px; padding:1.4em 1.5em; margin-bottom:1.6em;
+  }
+  .panel h2{ font-size:1.05rem; margin:0 0 1em; }
+  table{ width:100%; border-collapse:collapse; font-size:.86rem; }
+  th,td{ text-align:left; padding:.5em .6em; border-bottom:1px solid var(--line); }
+  th{ color:#8a8176; font-weight:600; text-transform:uppercase; font-size:.72rem; letter-spacing:.04em; }
+  td.num-cell{ text-align:right; }
+  .hidden{ display:none; }
+  .topbar{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1em; margin-bottom:1.6em; }
+  .note{ font-size:.78rem; color:#9a9186; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="gate" id="gate">
+    <h1 style="font-size:1.2rem;">SkinArt Analytics</h1>
+    <p class="sub" style="margin-bottom:0;">Admin access only.</p>
+    <input type="password" id="password-input" placeholder="Admin password" autocomplete="off">
+    <div><button id="unlock-btn">View Dashboard</button></div>
+    <div class="error-msg" id="gate-error"></div>
+  </div>
+
+  <div id="dashboard" class="hidden">
+    <div class="topbar">
+      <div>
+        <h1>SkinArt Analytics</h1>
+        <div class="sub" id="window-note">&nbsp;</div>
+      </div>
+      <button class="reload-btn" id="reload-btn">Refresh</button>
+    </div>
+
+    <div class="cards" id="cards"></div>
+
+    <div class="panel">
+      <h2>Funnel: AI Widget Open &rarr; Schedule Appointment Click</h2>
+      <table>
+        <tr><th>AI Widget Opened</th><th>Analysis Started</th><th>Analysis Completed</th><th>Schedule Clicked</th><th>Conversion Rate</th></tr>
+        <tr id="funnel-row"></tr>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>Top Pages</h2>
+      <table id="top-pages-table">
+        <thead><tr><th>Page</th><th class="num-cell">Views</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>Recent Events</h2>
+      <table id="recent-table">
+        <thead><tr><th>Event</th><th>Page</th><th>Session</th><th>When</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+  let password = "";
+
+  const gateEl = document.getElementById("gate");
+  const dashEl = document.getElementById("dashboard");
+  const errEl = document.getElementById("gate-error");
+
+  function fmtLabel(key) {
+    return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  function render(data) {
+    document.getElementById("window-note").textContent = data.window_note || "";
+
+    const cardsEl = document.getElementById("cards");
+    cardsEl.innerHTML = "";
+    Object.entries(data.totals || {}).forEach(([key, val]) => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `<div class="num">${val ?? "—"}</div><div class="label">${fmtLabel(key)}</div>`;
+      cardsEl.appendChild(card);
+    });
+
+    const f = data.funnel || {};
+    document.getElementById("funnel-row").innerHTML = `
+      <td>${f.ai_widget_opened ?? 0}</td>
+      <td>${f.ai_analysis_started ?? 0}</td>
+      <td>${f.ai_analysis_success ?? 0}</td>
+      <td>${f.schedule_appointment_clicked ?? 0}</td>
+      <td>${f.conversion_rate_widget_to_schedule_pct != null ? f.conversion_rate_widget_to_schedule_pct + "%" : "—"}</td>
+    `;
+
+    const topPagesBody = document.querySelector("#top-pages-table tbody");
+    topPagesBody.innerHTML = "";
+    (data.top_pages || []).forEach((p) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${p.page_url}</td><td class="num-cell">${p.count}</td>`;
+      topPagesBody.appendChild(tr);
+    });
+
+    const recentBody = document.querySelector("#recent-table tbody");
+    recentBody.innerHTML = "";
+    (data.recent_events || []).forEach((e) => {
+      const tr = document.createElement("tr");
+      const when = e.created_at ? new Date(e.created_at).toLocaleString() : "";
+      tr.innerHTML = `<td>${e.event_name}</td><td>${e.page_url || ""}</td><td>${e.session_id || ""}</td><td>${when}</td>`;
+      recentBody.appendChild(tr);
+    });
+  }
+
+  async function loadDashboard() {
+    errEl.textContent = "";
+    try {
+      const res = await fetch("/api/analytics-summary", { headers: { "x-admin-password": password } });
+      if (res.status === 401) {
+        errEl.textContent = "Incorrect password.";
+        return false;
+      }
+      if (!res.ok) {
+        errEl.textContent = "Could not load analytics right now.";
+        return false;
+      }
+      const data = await res.json();
+      render(data);
+      gateEl.classList.add("hidden");
+      dashEl.classList.remove("hidden");
+      return true;
+    } catch (e) {
+      errEl.textContent = "Could not load analytics right now.";
+      return false;
+    }
+  }
+
+  document.getElementById("unlock-btn").addEventListener("click", async () => {
+    password = document.getElementById("password-input").value;
+    await loadDashboard();
+  });
+  document.getElementById("password-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") document.getElementById("unlock-btn").click();
+  });
+  document.getElementById("reload-btn").addEventListener("click", loadDashboard);
+})();
+</script>
+
+</body>
+</html>
