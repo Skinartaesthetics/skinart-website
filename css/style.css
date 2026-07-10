@@ -1249,3 +1249,95 @@ footer.site-footer .footer-links-cols { display: grid; grid-template-columns: 1f
   line-height: 1.65;
 }
 .blog-author-bio strong { color: var(--dark); }
+
+/* ── Google Reviews Rotation ───────────────────────────────────────────── */
+#google-reviews { }
+
+.rev-header {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  margin-bottom: 2.4em;
+  justify-content: center;
+}
+.rev-google-icon { flex-shrink: 0; }
+.rev-summary { display: flex; align-items: center; gap: .6em; flex-wrap: wrap; }
+.rev-score {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.6rem;
+  color: var(--maroon);
+}
+.rev-stars { color: #f4b400; font-size: 1.1rem; letter-spacing: .05em; }
+.rev-count { font-size: .82rem; letter-spacing: .06em; color: var(--gold); text-transform: uppercase; }
+
+.rev-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.6em;
+  margin-bottom: 2em;
+}
+.rev-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1.5em 1.6em;
+  display: flex;
+  flex-direction: column;
+  gap: .8em;
+}
+.rev-card .rev-stars { font-size: .95rem; }
+.rev-text {
+  font-size: .92rem;
+  line-height: 1.65;
+  color: var(--ink-soft);
+  margin: 0;
+  flex: 1;
+}
+.rev-meta {
+  display: flex;
+  align-items: center;
+  gap: .7em;
+  margin-top: .4em;
+}
+.rev-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.rev-avatar--initials {
+  background: var(--cream);
+  color: var(--maroon);
+  font-weight: 600;
+  font-size: .85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rev-author {
+  display: block;
+  font-size: .85rem;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.3;
+}
+.rev-time {
+  display: block;
+  font-size: .76rem;
+  color: var(--gold);
+  letter-spacing: .04em;
+}
+.rev-cta {
+  display: block;
+  text-align: center;
+  font-size: .82rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--gold);
+  border-bottom: 1px solid var(--gold);
+  width: fit-content;
+  margin: 0 auto;
+  padding-bottom: 1px;
+}
+.rev-cta:hover { color: var(--maroon); border-color: var(--maroon); }
