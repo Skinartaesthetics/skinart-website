@@ -10,10 +10,35 @@ These were clear bugs, not content decisions:
 
 | Fix | File | What Changed |
 |-----|------|-------------|
-| ✅ Sitemap merge conflicts resolved | sitemap.xml | Removed git conflict markers; kept www URLs |
+| ✅ Sitemap merge conflicts resolved (×2) | sitemap.xml | Removed git conflict markers; kept www URLs; added blog-summer-acne-breakouts.html |
 | ✅ robots.txt sitemap URL corrected | robots.txt | Changed non-www → www sitemap reference |
 
-**Next step:** Run `git add -A && git commit -m "Fix sitemap conflicts + robots.txt www URL" && git push` in Terminal to deploy both fixes to Vercel.
+**Next step:** Run `git add -A && git commit -m "Fix sitemap conflicts + robots.txt www URL + add summer acne blog" && git push` in Terminal to deploy all fixes to Vercel.
+
+---
+
+## PRODUCT & DEVICE REFERENCE (Confirmed by Dina)
+
+*Used to write accurate service page copy — do not change without checking with Dina.*
+
+| Category | Details |
+|----------|---------|
+| **Chemical peels** | BioRePeel, GlyMed+, Circadia, Face Reality, VI Peel |
+| **Microneedling device** | SkinPen / Skinact Pen |
+| **Microneedling needle depth** | 0.25 mm – 1.00 mm |
+| **Microneedling numbing** | Provided at appointment (clients do not bring their own) |
+| **Microneedling pre-req** | Consultation required before first session |
+| **SWICH™ device brand** | Circadia |
+| **Signature Glow modalities** | LED, Zemits Dermlux hydrofacial, oxygen infusion, ultrasonic infusion |
+| **LED therapy** | Included in select facials; not offered as standalone add-on |
+| **Brow lamination brands** | Elleebana, Brow Code |
+| **Lash lift brand** | Elleebana |
+| **Brow lamination results** | 4–6 weeks |
+| **Lash lift results** | 4–6 weeks |
+| **Professional association** | ASCP member |
+| **Yelp** | https://www.yelp.com/biz/skinart-aesthetics-huntingdon-valley |
+| **Google review link** | https://g.page/r/CcgEiIExJqypEAI/review |
+| **Listings** | Apple Maps, Google Maps (Bing Places — not yet verified) |
 
 ---
 
@@ -383,7 +408,7 @@ All of our signature facials are built on a customized foundation. Here's what's
 A foundational facial that deeply cleanses, exfoliates, and restores balance. Ideal for first-time clients or anyone focused on maintenance and general skin wellness.
 
 **The Signature Glow** — 75 min / $220 *(Most Popular)*
-Our most requested treatment. Combines advanced cleansing, targeted exfoliation, extractions, hydration, and infusion technology for brighter, smoother, glowing skin. Best for dullness, congestion, and enlarged pores.
+Our most requested treatment. Combines advanced cleansing, targeted exfoliation, extractions, LED therapy, hydrofacial technology, and oxygen and ultrasonic infusion for brighter, smoother, glowing skin. Best for dullness, congestion, and enlarged pores.
 
 **The Hydrasilk Facial** — 75 min / $185
 A deeply hydrating treatment that focuses on strengthening the skin barrier and restoring moisture. Best for dry, dehydrated, and sensitized skin.
@@ -582,6 +607,8 @@ This is not a complete list of contraindications. If you have a medical conditio
 ---
 
 ## Our Microneedling Options
+
+SkinArt Aesthetics performs microneedling using the SkinPen, a professional-grade collagen induction device, at needle depths ranging from 0.25 mm to 1.00 mm depending on the treatment area and your skin's needs. Numbing cream is provided and applied at your appointment — you do not need to bring your own. A consultation is required before your first microneedling session.
 
 **Microneedling with Serum** — 75 min / $325
 A professional microneedling session followed by infusion of a targeted serum of your choice:

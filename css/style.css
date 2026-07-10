@@ -458,7 +458,23 @@ nav.main-nav a:hover { color: var(--gold-light); }
   margin: 0 auto;
 }
 .hero-inner { max-width: 560px; margin: 0; position: relative; z-index: 2; text-align: left; }
-.hero h1 { margin-bottom: .3em; }
+.hero h1 { margin-bottom: .2em; font-size: clamp(1.6rem, 3.5vw, 2.4rem); }
+.hero-brand-tagline {
+  font-family: 'Jost', sans-serif;
+  font-size: clamp(1rem, 2vw, 1.3rem);
+  font-weight: 300;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 1.1em;
+}
+.hero-brand-tagline .script {
+  font-family: 'Mistrully', cursive;
+  font-size: 1.5em;
+  letter-spacing: .04em;
+  text-transform: none;
+  font-weight: 400;
+}
 .hero .lede { font-size: 1.05rem; max-width: 480px; margin: 0 0 2em; }
 .hero-actions { display: flex; gap: 1em; justify-content: flex-start; flex-wrap: wrap; }
 .hero-photo {
@@ -750,6 +766,15 @@ section { padding: 4.5em 0; }
 .cta-band > .container { position: relative; z-index: 2; }
 .cta-band h2 { color: var(--cream-light); }
 .cta-band p { color: var(--line); }
+.cta-location {
+  margin-top: 2em;
+  font-size: .8rem;
+  color: rgba(255,255,255,.5);
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.7;
+}
 
 /* ---------- Stats ---------- */
 .stats {
@@ -996,6 +1021,92 @@ form.contact-form button { align-self: flex-start; cursor: pointer; }
 .policy-block:last-child { margin-bottom: 0; }
 .policy-block h3 { margin-bottom: .5em; }
 .policy-block p { margin-bottom: .8em; }
+
+/* ---------- Service Pages (prose layout, service list, FAQ) ---------- */
+.prose {
+  max-width: 780px;
+  margin: 0 auto;
+}
+.prose h2 {
+  margin-top: 2em;
+  margin-bottom: .5em;
+}
+.prose h2:first-child { margin-top: 0; }
+.prose p, .prose ul, .prose ol { margin-bottom: 1em; }
+.prose ul, .prose ol { padding-left: 1.4em; }
+.prose li { margin-bottom: .4em; }
+.intro-text {
+  font-size: 1.12rem;
+  line-height: 1.75;
+  color: var(--ink);
+  max-width: 720px;
+  margin: 0 auto;
+}
+.service-list {
+  display: grid;
+  gap: 2em;
+  max-width: 860px;
+  margin: 0 auto;
+}
+.service-item {
+  border-left: 3px solid var(--gold);
+  padding: 1.2em 0 1.2em 1.6em;
+}
+.service-item-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1em;
+  flex-wrap: wrap;
+  margin-bottom: .4em;
+}
+.service-item-head h3 { margin: 0; font-size: 1.08rem; }
+.service-item-head .price-row { flex-shrink: 0; }
+.service-item .best-for {
+  margin-top: .8em;
+  font-size: .82rem;
+}
+.badge {
+  display: inline-block;
+  font-family: 'Jost', sans-serif;
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--cream-light);
+  background: var(--gold);
+  padding: .2em .6em;
+  border-radius: 2px;
+  vertical-align: middle;
+  margin-left: .5em;
+}
+.faq-list { display: grid; gap: 1.6em; }
+.faq-item h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: .4em;
+  color: var(--ink);
+}
+.faq-item p { margin: 0; color: var(--text); }
+.btn-outline-light {
+  display: inline-block;
+  padding: .75em 1.6em;
+  border: 1.5px solid rgba(255,255,255,.6);
+  color: var(--cream-light);
+  background: transparent;
+  border-radius: 2px;
+  font-family: 'Jost', sans-serif;
+  font-size: .78rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background .2s, border-color .2s;
+}
+.btn-outline-light:hover,
+.btn-outline-light:focus-visible {
+  background: rgba(255,255,255,.12);
+  border-color: var(--cream-light);
+}
 
 /* ---------- Footer ---------- */
 footer.site-footer {
