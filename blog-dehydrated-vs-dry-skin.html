@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- Google tag (gtag.js) - GA4 - SkinArt Aesthetics main site only -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-WZC5FNJ3BG"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  // anonymize_ip and no cross-domain "linker" config on purpose — this site
+  // and the external GlossGenius booking domain must stay two separate
+  // GA4 properties/sessions, never merged into one.
+  gtag('config', 'G-WZC5FNJ3BG');
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dehydrated Skin vs. Dry Skin: What's the Difference? | SkinArt Aesthetics</title>
@@ -54,13 +65,19 @@
   </div>
   <div class="nav-bar">
     <div class="nav-bar-inner container">
+      <div class="nav-backdrop"></div>
       <nav class="main-nav">
+      <button class="nav-close" type="button" aria-label="Close menu">&times;</button>
+      <div class="mobile-nav-cta">
+        <a href="contact.html" class="btn btn-solid">Book Consultation</a>
+        <a href="https://skinart.glossgenius.com/services" target="_blank" rel="noopener" class="btn btn-solid">Schedule an Appointment</a>
+      </div>
       <a href="index.html">Home</a>
       <a href="about.html">About us</a>
       <a href="treatments.html">Treatments</a>
       <a href="postcare.html">Post Care instructions</a>
       <a href="shop.html">Shop</a>
-      <a href="blog.html" class="active">Blog</a>
+      <a href="blog.html" class="active" aria-current="page">Blog</a>
       <a href="contact.html">Contact us</a>
       <a href="policies.html">Policies</a>
     </nav>
@@ -115,7 +132,7 @@
   <div class="container">
     <div class="footer-grid">
       <div>
-        <h4>Skinart Aesthetics</h4>
+        <h3>Skinart Aesthetics</h3>
         <p>A boutique skincare studio in Huntingdon Valley, PA, focused on personalized, results-driven facials and skin treatments.</p>
         <div class="social-row">
           <a href="https://www.instagram.com/skinartaesthetics/" target="_blank" rel="noopener" aria-label="Instagram">
@@ -127,7 +144,7 @@
         </div>
       </div>
       <div>
-        <h4>Explore</h4>
+        <h3>Explore</h3>
         <ul class="footer-links footer-links-cols">
           <li><a href="index.html">Home</a></li>
           <li><a href="about.html">About us</a></li>
@@ -140,7 +157,7 @@
         </ul>
       </div>
       <div>
-        <h4>Visit</h4>
+        <h3>Visit</h3>
         <ul class="footer-links">
           <li>2337 Philmont Ave, Suite 203D<br>Huntingdon Valley, PA 19006</li>
           <li><a href="tel:14845190407">(484) 519-0407</a></li>
@@ -158,5 +175,7 @@
 <script src="js/main.js"></script>
 <script src="js/analytics.js"></script>
 <script src="js/skin-analysis.js"></script>
+<script src="js/ga4-events.js"></script>
+<script src="js/parallax.js"></script>
 </body>
 </html>

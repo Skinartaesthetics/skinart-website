@@ -25,7 +25,7 @@
 const RECENT_WINDOW = 5000; // rows scanned for aggregation — plenty for a boutique studio's volume
 
 function checkAuth(req) {
-  const expected = process.env.ANALYTICS_ADMIN_PASSWORD;
+  const expected = (process.env.ANALYTICS_ADMIN_PASSWORD || "").trim();
   if (!expected) return false; // fail closed if not configured
   const supplied = (req.query && req.query.password) || req.headers["x-admin-password"];
   return supplied && supplied === expected;
@@ -66,8 +66,10 @@ export default async function handler(req, res) {
     return;
   }
 
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // .trim() guards against trailing newlines/spaces from a copy-pasted env
+  // var value, which otherwise makes fetch() throw an opaque "fetch failed".
+  const url = (process.env.SUPABASE_URL || "").trim().replace(/\/+$/, "");
+  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
   if (!url || !key) {
     res.status(503).json({ error: "Analytics is not configured (missing Supabase environment variables)" });
     return;

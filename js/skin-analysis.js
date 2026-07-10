@@ -22,6 +22,13 @@
     SCHEDULE_CLICK_ENDPOINT: "/api/track-schedule-click",
   };
 
+  // Must match the CSS aspect-ratio on .ai-camera-live / .ai-preview-wrap so
+  // the photo a user actually captures always matches what they saw in the
+  // live preview box — otherwise mobile cameras (which report tall native
+  // frames) end up center-cropped or letterboxed differently than the
+  // on-screen preview, which is the "black crop" mismatch bug.
+  const CAPTURE_ASPECT_RATIO = 4 / 5;
+
   const ICONS = {
     sparkle:
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M18 6l-2.5 2.5M8.5 15.5L6 18"/><circle cx="12" cy="12" r="2.2"/></svg>',
@@ -39,6 +46,8 @@
     imageDataUrl: null,
     imageFile: null,
     analysis: null,
+    findings: null,
+    treatmentMatch: null,
     scheduleClicked: false,
   };
 
@@ -298,7 +307,7 @@
       previewArea.innerHTML = `
         <div class="ai-preview-wrap">
           <img src="${dataUrl}" alt="Your selfie preview">
-          <button class="ai-preview-remove" id="ai-preview-remove">&times;</button>
+          <button class="ai-preview-remove" id="ai-preview-remove" aria-label="Remove photo">&times;</button>
         </div>
       `;
       previewArea.querySelector("#ai-preview-remove").addEventListener("click", () => {
@@ -337,6 +346,10 @@
         videoEl.srcObject = stream;
         liveArea.hidden = false;
         uploadActions.hidden = true;
+        // Some browsers (notably iOS Safari) won't reliably start the
+        // stream from the autoplay/muted/playsinline attributes alone —
+        // call play() explicitly so videoWidth/videoHeight populate.
+        videoEl.play().catch(() => {});
       } catch (err) {
         cameraInput.click();
       }
@@ -345,15 +358,84 @@
     bodyEl.querySelector("#ai-camera-btn").addEventListener("click", openLiveCamera);
     bodyEl.querySelector("#ai-library-btn").addEventListener("click", () => libraryInput.click());
 
-    bodyEl.querySelector("#ai-camera-capture-btn").addEventListener("click", () => {
+    // Crops the live video frame to CAPTURE_ASPECT_RATIO around its center,
+    // so the saved photo matches the 4:5 box the user saw on screen instead
+    // of the camera's raw (often portrait, often mismatched) native frame.
+    // Returns null if the video's metadata isn't ready yet (videoWidth/Height
+    // still 0) — happens occasionally on mobile if Capture is tapped the
+    // instant the live preview appears, which previously produced a blank
+    // black photo.
+    function captureCroppedFrame() {
+      const vw = videoEl.videoWidth;
+      const vh = videoEl.videoHeight;
+      if (!vw || !vh) return null;
+
+      // Measure the video element's ACTUAL on-screen ratio right now, rather
+      // than assuming CAPTURE_ASPECT_RATIO — this is what makes capture match
+      // the preview on any phone/tablet/screen size. Reads videoEl itself
+      // (not the .ai-camera-live container) since the container also wraps
+      // the Capture/Cancel buttons and isn't what's CSS-constrained to a
+      // fixed ratio. Falls back to the constant only if layout hasn't
+      // happened yet.
+      const boxRect = videoEl.getBoundingClientRect();
+      const targetRatio =
+        boxRect.width > 0 && boxRect.height > 0
+          ? boxRect.width / boxRect.height
+          : CAPTURE_ASPECT_RATIO;
+
+      let sx, sy, sw, sh;
+      const videoRatio = vw / vh;
+      if (videoRatio > targetRatio) {
+        // Video is wider than the target box — crop the left/right sides.
+        sh = vh;
+        sw = vh * targetRatio;
+        sx = (vw - sw) / 2;
+        sy = 0;
+      } else {
+        // Video is taller than the target box — crop the top/bottom.
+        sw = vw;
+        sh = vw / targetRatio;
+        sx = 0;
+        sy = (vh - sh) / 2;
+      }
+
+      const canvas = document.createElement("canvas");
+      const outW = Math.min(sw, 900); // keep the upload reasonably small
+      canvas.width = outW;
+      canvas.height = outW / targetRatio;
+      canvas
+        .getContext("2d")
+        .drawImage(videoEl, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL("image/jpeg", 0.9);
+    }
+
+    // Tries the proper aspect-ratio-cropped capture a few times (metadata can
+    // take a beat on some mobile browsers); if it still isn't ready, falls
+    // back to capturing the raw frame outright so the button never just does
+    // nothing — a slightly-off crop beats a dead button.
+    function attemptCapture(retriesLeft) {
+      const dataUrl = captureCroppedFrame();
+      if (dataUrl) {
+        stopLiveCamera();
+        state.imageFile = null;
+        setImageFromDataUrl(dataUrl);
+        return;
+      }
+      if (retriesLeft > 0) {
+        setTimeout(() => attemptCapture(retriesLeft - 1), 200);
+        return;
+      }
       const canvas = document.createElement("canvas");
       canvas.width = videoEl.videoWidth || 640;
       canvas.height = videoEl.videoHeight || 640;
       canvas.getContext("2d").drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
       stopLiveCamera();
       state.imageFile = null;
-      setImageFromDataUrl(dataUrl);
+      setImageFromDataUrl(canvas.toDataURL("image/jpeg", 0.9));
+    }
+
+    bodyEl.querySelector("#ai-camera-capture-btn").addEventListener("click", () => {
+      attemptCapture(5);
     });
 
     bodyEl.querySelector("#ai-camera-cancel-btn").addEventListener("click", stopLiveCamera);
@@ -381,6 +463,8 @@
 
   async function runAnalysis() {
     let analysis = null;
+    let findings = null;
+    let treatmentMatch = null;
 
     // Single call to our own serverless endpoint — it validates the lead's
     // info, calls OpenAI server-side, emails the lead to the studio, and
@@ -399,19 +483,26 @@
       });
 
       const data = await res.json();
-      // The backend always normalizes the report to ONE string field: analysis.
-      // (Regardless of what it might be called internally — report/result/
-      // message/aiAnalysis — the widget only ever reads `data.analysis`.)
+      // The backend always normalizes the full report to ONE string field:
+      // analysis — that's the fallback this widget can always render from.
+      // `findings` and `treatmentMatch` are newer, additive fields that let
+      // renderResults() show a nicer, sectioned layout when present; if
+      // they're ever missing (e.g. an older deploy), the widget still works
+      // off `analysis` alone.
       if (!res.ok || !data.analysisAvailable || !data.analysis || typeof data.analysis !== "string") {
         console.error("Analyze-skin endpoint returned no usable analysis:", data);
       } else {
         analysis = data.analysis;
+        findings = typeof data.findings === "string" ? data.findings : null;
+        treatmentMatch = data.treatmentMatch && typeof data.treatmentMatch === "object" ? data.treatmentMatch : null;
       }
     } catch (err) {
       console.error("Analyze-skin request failed:", err);
     }
 
     state.analysis = analysis;
+    state.findings = findings;
+    state.treatmentMatch = treatmentMatch;
     state.step = "results";
     render();
   }
@@ -435,24 +526,90 @@
       .filter(Boolean);
   }
 
-  function renderResults() {
-    const sections = parseAnalysisSections(state.analysis);
-    const hasReport = sections.length > 0;
+  // Renders the "Your SkinArt Treatment Match" card — primary match, why it
+  // may fit, up to 2 secondary options, and the recommended next step. Only
+  // called when the backend sent a valid treatmentMatch object.
+  function renderTreatmentMatchHtml(match) {
+    const secondary = Array.isArray(match.secondary) ? match.secondary : [];
+    const secondaryHtml = secondary.length
+      ? `
+        <div class="ai-treatment-secondary">
+          <h4>Secondary Options</h4>
+          <ul>
+            ${secondary
+              .map((s) => `<li><strong>${escapeHtml(s.name)}</strong> — ${escapeHtml(s.reason)}</li>`)
+              .join("")}
+          </ul>
+        </div>
+      `
+      : "";
 
-    const reportHtml = hasReport
-      ? sections
-          .map(([label, content]) => `
-            <div class="ai-result-section">
-              <h4>${escapeHtml(label)}</h4>
-              <p>${escapeHtml(content)}</p>
-            </div>
-          `)
-          .join("")
-      : `<div class="ai-error-box">Instant results aren't quite ready yet on our end — but don't worry, your photo and details have already been sent to our team. An esthetician will personally review your submission and follow up with recommendations.</div>`;
+    return `
+      <div class="ai-treatment-match">
+        <h3>Your SkinArt Treatment Match</h3>
+        <div class="ai-treatment-primary">
+          <div class="ai-treatment-label">${match.fellBack ? "Suggested Starting Point" : "Primary Match"}</div>
+          <div class="ai-treatment-name">${escapeHtml(match.primaryName)}</div>
+        </div>
+        <div class="ai-treatment-why">
+          <h4>Why This Treatment May Fit</h4>
+          <p>${escapeHtml(match.primaryReason)}</p>
+        </div>
+        ${secondaryHtml}
+        <div class="ai-treatment-next">
+          <h4>Recommended Next Step</h4>
+          <p>${escapeHtml(match.nextStep)}</p>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderResults() {
+    const hasTreatmentMatch = !!(state.treatmentMatch && state.treatmentMatch.primaryName);
+
+    let reportHtml;
+    if (hasTreatmentMatch) {
+      // Newer, sectioned layout: findings grouped under their own heading,
+      // then a dedicated treatment-match card.
+      const findingsSections = parseAnalysisSections(state.findings || state.analysis);
+      const findingsHtml = findingsSections.length
+        ? findingsSections
+            .map(([label, content]) => `
+              <div class="ai-result-section">
+                <h4>${escapeHtml(label)}</h4>
+                <p>${escapeHtml(content)}</p>
+              </div>
+            `)
+            .join("")
+        : "";
+
+      reportHtml = `
+        <h3>Your Preliminary Skin Findings</h3>
+        ${findingsHtml}
+        ${renderTreatmentMatchHtml(state.treatmentMatch)}
+      `;
+    } else {
+      // Fallback: original generic rendering, unchanged — used if the AI
+      // analysis wasn't available or the backend didn't send a treatment
+      // match for some reason. This path is intentionally identical to the
+      // widget's original behavior so nothing breaks.
+      const sections = parseAnalysisSections(state.analysis);
+      const hasReport = sections.length > 0;
+      reportHtml = hasReport
+        ? `<h3>Your Preliminary Results</h3>` +
+          sections
+            .map(([label, content]) => `
+              <div class="ai-result-section">
+                <h4>${escapeHtml(label)}</h4>
+                <p>${escapeHtml(content)}</p>
+              </div>
+            `)
+            .join("")
+        : `<h3>Your Preliminary Results</h3><div class="ai-error-box">Instant results aren't quite ready yet on our end — but don't worry, your photo and details have already been sent to our team. An esthetician will personally review your submission and follow up with recommendations.</div>`;
+    }
 
     bodyEl.innerHTML = `
       <div class="ai-step">
-        <h3>Your Preliminary Results</h3>
         ${reportHtml}
 
         <p style="font-size:.85rem;">Ready for a professional skin plan? Schedule your appointment and let's create a treatment protocol designed around your skin.</p>

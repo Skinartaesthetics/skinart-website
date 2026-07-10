@@ -315,7 +315,36 @@
   overflow: hidden;
   border: 1px solid var(--cream);
 }
-.ai-preview-wrap img { width: 100%; display: block; max-height: 260px; object-fit: cover; }
+.ai-preview-wrap img { width: 100%; display: block; max-height: 320px; object-fit: cover; }
+
+/* Mobile only: fixed 4:5 portrait box for both the live camera preview and
+   the captured-photo preview, so they always match each other exactly and
+   there's no leftover black gap below the video (which happened because the
+   old max-height cap didn't reserve a definite box height on phones).
+   Desktop is untouched above.
+
+   The ratio goes on the <video> itself, NOT on .ai-camera-live — that outer
+   box also wraps the Capture/Cancel button row below the video, so forcing
+   IT to 4:5 with the video at height:100% left no room for the buttons and
+   overflow:hidden clipped them off-screen (Capture became unreachable). */
+@media (max-width: 600px) {
+  .ai-camera-live video {
+    aspect-ratio: 4 / 5;
+    width: 100%;
+    height: auto;
+    max-height: none;
+    object-fit: cover;
+  }
+  .ai-preview-wrap {
+    aspect-ratio: 4 / 5;
+  }
+  .ai-preview-wrap img {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    object-fit: cover;
+  }
+}
 .ai-preview-remove {
   position: absolute;
   top: 8px;
@@ -367,6 +396,53 @@
   margin: 1.1em 0;
   font-size: .9rem;
 }
+
+.ai-treatment-match {
+  background: var(--white);
+  border: 1px solid var(--gold-light);
+  border-radius: 14px;
+  padding: 1.2em 1.3em;
+  margin: 1.2em 0 1.4em;
+}
+.ai-treatment-match h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem;
+  color: var(--ink-soft);
+  margin: 0 0 .7em;
+}
+.ai-treatment-match h4 {
+  font-family: 'Jost', sans-serif;
+  font-size: .76rem;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 .3em;
+}
+.ai-treatment-match p { margin: 0; font-size: .9rem; }
+.ai-treatment-primary { margin-bottom: 1em; }
+.ai-treatment-label {
+  font-size: .72rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: .2em;
+}
+.ai-treatment-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.15rem;
+  color: var(--ink-soft);
+}
+.ai-treatment-why { margin-bottom: 1em; }
+.ai-treatment-secondary { margin-bottom: 1em; }
+.ai-treatment-secondary ul { list-style: none; margin: 0; padding: 0; }
+.ai-treatment-secondary li {
+  font-size: .88rem;
+  padding: .55em 0;
+  border-top: 1px solid var(--cream);
+}
+.ai-treatment-secondary li:first-child { border-top: none; padding-top: 0; }
+.ai-treatment-secondary li strong { color: var(--ink-soft); }
+.ai-treatment-next p { font-size: .9rem; }
 
 .ai-error-box {
   background: #fbeceb;
