@@ -1061,7 +1061,23 @@ form.contact-form button { align-self: flex-start; cursor: pointer; }
   margin-bottom: .4em;
 }
 .service-item-head h3 { margin: 0; font-size: 1.08rem; }
-.service-item-head .price-row { flex-shrink: 0; }
+.service-item-head .price-row {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--dark);
+  white-space: nowrap;
+}
+.service-item-head .price-row span:first-child { font-weight: 700; }
+.service-item-head .price-row span + span::before {
+  content: ' \00B7 ';
+  font-weight: 400;
+  color: #999;
+  margin: 0 0.25em;
+}
 .service-item .best-for {
   margin-top: .8em;
   font-size: .82rem;
