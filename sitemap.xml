@@ -1,153 +1,159 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://www.skinartaesthetics.com/</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/about.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/treatments.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/facials-huntingdon-valley.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/microneedling-huntingdon-valley.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/shop.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/postcare.html</loc>
-    <lastmod>2026-06-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/policies.html</loc>
-    <lastmod>2026-06-25</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/contact.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/blog.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/blog-summer-acne-breakouts.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/blog-skinart-way.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/blog-next-facial.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/blog-dehydrated-vs-dry-skin.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/blog-customized-facial.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/blog-chemical-peel-aftercare.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/blog-blackheads.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/acne-facial-huntingdon-valley.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/chemical-peels-huntingdon-valley.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/biorepeel-huntingdon-valley.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/dermaplaning-huntingdon-valley.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/hydrating-facial-huntingdon-valley.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/anti-aging-facial-huntingdon-valley.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/brow-lamination-huntingdon-valley.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.skinartaesthetics.com/lash-lift-huntingdon-valley.html</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
+<url>
+<loc>https://www.skinartaesthetics.com/</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>weekly</changefreq>
+<priority>1.0</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/about.html</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.8</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/treatments.html</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.9</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/facials-huntingdon-valley.html</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.9</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/microneedling-huntingdon-valley.html</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.9</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/shop.html</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.7</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/postcare.html</loc>
+<lastmod>2026-06-25</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.6</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/policies.html</loc>
+<lastmod>2026-06-25</lastmod>
+<changefreq>yearly</changefreq>
+<priority>0.3</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/contact.html</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.9</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/blog.html</loc>
+<lastmod>2026-07-25</lastmod>
+<changefreq>weekly</changefreq>
+<priority>0.7</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/blog-sun-spots-pigmentation.html</loc>
+<lastmod>2026-07-25</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.6</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/blog-summer-acne-breakouts.html</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.6</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/blog-skinart-way.html</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.6</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/blog-next-facial.html</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.6</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/blog-dehydrated-vs-dry-skin.html</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.6</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/blog-customized-facial.html</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.6</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/blog-chemical-peel-aftercare.html</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.6</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/blog-blackheads.html</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.6</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/acne-facial-huntingdon-valley.html</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.9</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/chemical-peels-huntingdon-valley.html</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.9</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/biorepeel-huntingdon-valley.html</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.9</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/dermaplaning-huntingdon-valley.html</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.9</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/hydrating-facial-huntingdon-valley.html</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.9</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/anti-aging-facial-huntingdon-valley.html</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.9</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/brow-lamination-huntingdon-valley.html</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.8</priority>
+</url>
+<url>
+<loc>https://www.skinartaesthetics.com/lash-lift-huntingdon-valley.html</loc>
+<lastmod>2026-07-10</lastmod>
+<changefreq>monthly</changefreq>
+<priority>0.8</priority>
+</url>
 </urlset>
