@@ -248,6 +248,35 @@ nav.main-nav a {
 nav.main-nav a.active { color: var(--gold-light); }
 nav.main-nav a:hover { color: var(--gold-light); }
 
+/* ---------- Treatments dropdown (desktop) ---------- */
+.nav-dropdown { position: relative; display: inline-flex; align-items: center; }
+.nav-dropdown > a::after { content: ''; }
+.nav-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + .5em);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink);
+  border-top: 2px solid var(--gold);
+  min-width: 220px;
+  padding: .4em 0;
+  z-index: 300;
+  box-shadow: 0 12px 28px -8px rgba(20,16,14,.5);
+}
+.nav-dropdown:hover .nav-dropdown-menu { display: block; }
+.nav-dropdown-menu a {
+  display: block;
+  padding: .65em 1.4em;
+  font-size: .73rem;
+  font-weight: 400;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--cream-light);
+  white-space: nowrap;
+}
+.nav-dropdown-menu a:hover { color: var(--gold-light); background: rgba(255,255,255,.05); }
+
 /* "Book Consultation" / "Schedule an Appointment" duplicated into the
    mobile dropdown menu (see nav.main-nav markup) so they can be pulled out
    of the sticky header on small screens. Hidden by default — desktop's
@@ -411,6 +440,32 @@ nav.main-nav a:hover { color: var(--gold-light); }
   }
   nav.main-nav a.active { color: var(--gold); font-weight: 500; }
   nav.main-nav a.active::after { content: '\2022'; opacity: 1; color: var(--gold); }
+
+  /* ---------- Treatments dropdown (mobile accordion) ---------- */
+  .nav-dropdown { position: static; width: 100%; display: block; }
+  .nav-dropdown > a::after { content: ' ▾'; font-size: .75em; opacity: .7; transition: transform .25s ease; }
+  .nav-dropdown.open > a::after { content: ' ▴'; }
+  .nav-dropdown-menu { display: none; background: rgba(90,80,70,.07); }
+  .nav-dropdown-menu.open { display: block; }
+  .nav-dropdown-menu a {
+    padding-left: 42px;
+    font-size: .78rem;
+    border-top: 1px solid var(--line);
+    color: var(--ink);
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding-top: .85em;
+    padding-bottom: .85em;
+    padding-right: 26px;
+    transition: color .2s ease, padding-left .2s ease, background .2s ease;
+  }
+  .nav-dropdown-menu a::after { content: '\203A'; font-size: 1.05rem; color: var(--gold-light); opacity: 0; transform: translateX(-4px); transition: opacity .2s ease, transform .2s ease; }
+  .nav-dropdown-menu a:hover { color: var(--gold); padding-left: 50px; background: rgba(110,122,99,.07); }
+  .nav-dropdown-menu a:hover::after { opacity: 1; transform: translateX(0); }
   .menu-toggle {
     display: flex;
     align-items: center;

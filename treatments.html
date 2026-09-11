@@ -7,20 +7,17 @@
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-  // anonymize_ip and no cross-domain "linker" config on purpose — this site
-  // and the external GlossGenius booking domain must stay two separate
-  // GA4 properties/sessions, never merged into one.
   gtag('config', 'G-WZC5FNJ3BG');
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Facial &amp; Skincare Treatments | Huntingdon Valley, PA | SkinArt Aesthetics</title>
-<meta name="description" content="Browse SkinArt's full treatment menu in Huntingdon Valley, PA — customized facials, chemical peels, microneedling, BioRePeel, dermaplaning, and brow &amp; lash services with pricing.">
+<title>Skin Treatments in Huntingdon Valley, PA | SkinArt Aesthetics</title>
+<meta name="description" content="Explore all treatments at SkinArt Aesthetics — facials, chemical peels, microneedling, laser &amp; body, tattoo removal, and brow &amp; lash services in Huntingdon Valley, PA.">
 <link rel="canonical" href="https://www.skinartaesthetics.com/treatments.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="SkinArt Aesthetics">
-<meta property="og:title" content="Treatments & Pricing | SkinArt Aesthetics">
-<meta property="og:description" content="Full treatment menu for SkinArt Aesthetics: facials, chemical peels, microneedling, BioRePeel, SWICH, brows and lashes, and skin consultations with pricing.">
+<meta property="og:title" content="Treatments | SkinArt Aesthetics | Huntingdon Valley, PA">
+<meta property="og:description" content="Facials, chemical peels, microneedling, laser & body treatments, tattoo removal, and brow & lash services in Huntingdon Valley, PA.">
 <meta property="og:url" content="https://www.skinartaesthetics.com/treatments.html">
 <meta property="og:image" content="https://www.skinartaesthetics.com/DSC07467.jpg">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -29,6 +26,91 @@
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/skin-analysis.css">
+<style>
+/* Category card grid — treatments landing page */
+.treat-categories {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.6rem;
+  margin-top: 2.4rem;
+}
+@media (max-width: 900px) {
+  .treat-categories { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 540px) {
+  .treat-categories { grid-template-columns: 1fr; gap: 1.2rem; }
+}
+.treat-cat-card {
+  position: relative;
+  border-radius: 3px;
+  overflow: hidden;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  text-decoration: none;
+  background: var(--ink);
+}
+.treat-cat-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--card-img) center / cover no-repeat;
+  opacity: .75;
+  transition: opacity .4s ease, transform .55s ease;
+  transform: scale(1);
+}
+.treat-cat-card:hover::before {
+  opacity: .55;
+  transform: scale(1.04);
+}
+.treat-cat-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(20,16,14,.82) 0%, rgba(20,16,14,.3) 55%, transparent 100%);
+}
+.treat-cat-body {
+  position: relative;
+  z-index: 1;
+  padding: 1.6rem 1.5rem 1.4rem;
+}
+.treat-cat-body .eyebrow {
+  display: block;
+  font-size: .66rem;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--gold-light);
+  margin-bottom: .4em;
+  opacity: .85;
+}
+.treat-cat-body h3 {
+  font-size: 1.35rem;
+  color: var(--cream-light);
+  margin: 0 0 .45em;
+  line-height: 1.2;
+  font-weight: 700;
+}
+.treat-cat-body p {
+  font-size: .82rem;
+  color: rgba(245,240,232,.75);
+  margin: 0 0 1em;
+  line-height: 1.5;
+}
+.treat-cat-body .cat-link {
+  display: inline-flex;
+  align-items: center;
+  gap: .35em;
+  font-size: .75rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--gold-light);
+  transition: color .2s ease;
+}
+.treat-cat-card:hover .cat-link { color: #fff; }
+.treat-cat-body .cat-link::after { content: '\2192'; font-size: .9em; }
+</style>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -36,16 +118,12 @@
   "name": "Treatments at SkinArt Aesthetics",
   "url": "https://www.skinartaesthetics.com/treatments.html",
   "itemListElement": [
-    {"@type":"ListItem","position":1,"name":"Customized Facials","url":"https://www.skinartaesthetics.com/facials-huntingdon-valley.html"},
-    {"@type":"ListItem","position":2,"name":"Microneedling","url":"https://www.skinartaesthetics.com/microneedling-huntingdon-valley.html"},
-    {"@type":"ListItem","position":3,"name":"Chemical Peels","url":"https://www.skinartaesthetics.com/chemical-peels-huntingdon-valley.html"},
-    {"@type":"ListItem","position":4,"name":"BioRePeel","url":"https://www.skinartaesthetics.com/biorepeel-huntingdon-valley.html"},
-    {"@type":"ListItem","position":5,"name":"Dermaplaning","url":"https://www.skinartaesthetics.com/dermaplaning-huntingdon-valley.html"},
-    {"@type":"ListItem","position":6,"name":"Acne Facial","url":"https://www.skinartaesthetics.com/acne-facial-huntingdon-valley.html"},
-    {"@type":"ListItem","position":7,"name":"Anti-Aging Facial","url":"https://www.skinartaesthetics.com/anti-aging-facial-huntingdon-valley.html"},
-    {"@type":"ListItem","position":8,"name":"Hydrating Facial","url":"https://www.skinartaesthetics.com/hydrating-facial-huntingdon-valley.html"},
-    {"@type":"ListItem","position":9,"name":"Brow Lamination","url":"https://www.skinartaesthetics.com/brow-lamination-huntingdon-valley.html"},
-    {"@type":"ListItem","position":10,"name":"Lash Lift & Tint","url":"https://www.skinartaesthetics.com/lash-lift-huntingdon-valley.html"}
+    {"@type":"ListItem","position":1,"name":"Facials","url":"https://www.skinartaesthetics.com/facials-huntingdon-valley.html"},
+    {"@type":"ListItem","position":2,"name":"Chemical Peels","url":"https://www.skinartaesthetics.com/chemical-peels-huntingdon-valley.html"},
+    {"@type":"ListItem","position":3,"name":"Microneedling","url":"https://www.skinartaesthetics.com/microneedling-huntingdon-valley.html"},
+    {"@type":"ListItem","position":4,"name":"Laser & Body Treatments","url":"https://www.skinartaesthetics.com/laser-body-treatments-huntingdon-valley.html"},
+    {"@type":"ListItem","position":5,"name":"Tattoo & PMU Removal","url":"https://www.skinartaesthetics.com/tattoo-pmu-removal-huntingdon-valley.html"},
+    {"@type":"ListItem","position":6,"name":"Brows & Lashes","url":"https://www.skinartaesthetics.com/brow-lamination-huntingdon-valley.html"}
   ]
 }
 </script>
@@ -83,10 +161,40 @@
       </div>
       <a href="index.html">Home</a>
       <a href="about.html">About us</a>
-      <a href="treatments.html" class="active" aria-current="page">Treatments</a>
-      <a href="postcare.html">Post Care instructions</a>
+      <div class="nav-dropdown">
+        <a href="treatments.html" class="active" aria-current="page">Treatments</a>
+        <div class="nav-dropdown-menu">
+          <a href="facials-huntingdon-valley.html">Facials</a>
+          <a href="chemical-peels-huntingdon-valley.html">Chemical Peels</a>
+          <a href="microneedling-huntingdon-valley.html">Microneedling</a>
+          <a href="laser-body-treatments-huntingdon-valley.html">Laser &amp; Body</a>
+          <a href="tattoo-pmu-removal-huntingdon-valley.html">Tattoo &amp; PMU Removal</a>
+          <a href="brow-lamination-huntingdon-valley.html">Brows &amp; Lashes</a>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <a href="postcare.html">Post Care instructions</a>
+        <div class="nav-dropdown-menu">
+          <a href="postcare.html#pc-facials">Facials &amp; Dermaplaning</a>
+          <a href="postcare.html#pc-peels">Chemical Peels &amp; BioRePeel</a>
+          <a href="postcare.html#pc-micro">Microneedling</a>
+          <a href="postcare.html#pc-laser">Laser &amp; Body</a>
+          <a href="postcare.html#pc-tattoo">Tattoo &amp; PMU Removal</a>
+          <a href="postcare.html#pc-brows">Brows &amp; Lashes</a>
+        </div>
+      </div>
       <a href="shop.html">Shop</a>
-      <a href="blog.html">Blog</a>
+      <div class="nav-dropdown">
+<a href="blog.html">Concerns</a>
+<div class="nav-dropdown-menu">
+<a href="blog.html#acne">Acne &amp; Breakouts</a>
+<a href="blog.html#pigmentation">Pigmentation</a>
+<a href="blog.html#aging">Aging &amp; Renewal</a>
+<a href="blog.html#hydration">Dryness &amp; Dehydration</a>
+<a href="blog.html#guides">Treatment Guides</a>
+<a href="blog.html#postcare-reads">Post-Care</a>
+</div>
+</div>
       <a href="contact.html">Contact us</a>
       <a href="policies.html">Policies</a>
     </nav>
@@ -96,133 +204,71 @@
 
 <section class="page-hero" style="--hero-img:url('DSC07786.jpg'); --hero-pos:center 25%;">
   <div class="container">
-    <span class="eyebrow">Menu &amp; Pricing</span>
-    <h1>Treatments, <span class="script">Tailored</span></h1>
-    <p>Every service below can be combined into a custom plan during your skin consultation.</p>
+    <span class="eyebrow">Treatments</span>
+    <h1>Your Skin, <span class="script">Reimagined</span></h1>
+    <p>Six treatment categories, each with its own dedicated menu and pricing. Every service can be combined into a custom plan during your skin consultation.</p>
   </div>
 </section>
 
 <section>
   <div class="container">
 
-    <div class="category-block">
-      <div class="category-title"><h2>Signature Facials</h2></div>
-      <p style="margin-bottom:1.6em;">Every facial is customized to your skin's needs on the day of your appointment. <a href="facials-huntingdon-valley.html" style="color:var(--gold);font-weight:600;">Learn about our facial approach →</a></p>
-      <div class="treat-list">
+    <div class="treat-categories">
 
-        <div class="treat-row">
-          <div class="treat-main">
-            <div class="treat-thumb"><img src="menu-photos/menu-essential-reset.jpg" alt="The Essential Reset facial treatment"></div>
-            <div class="info">
-              <h4>The Essential Reset</h4>
-              <div class="meta">60 min</div>
-              <p>A foundational facial designed to deeply cleanse, gently exfoliate, and restore balance while leaving the skin refreshed and healthy.</p>
-              <div class="best-for">Best for: first-time clients, maintenance &amp; overall skin wellness.</div>
-              <a href="facials-huntingdon-valley.html" style="display:inline-block;margin-top:0.6em;font-size:0.88rem;font-weight:600;color:var(--gold);">Full treatment details →</a>
-            </div>
-          </div>
-          <div class="price">$140</div>
+      <a href="facials-huntingdon-valley.html" class="treat-cat-card" style="--card-img:url('DSC07711.jpg');">
+        <div class="treat-cat-body">
+          <span class="eyebrow">From $140</span>
+          <h3>Facials</h3>
+          <p>Customized, results-driven facials tailored to your skin on the day — from deep-cleansing resets to anti-aging lifts.</p>
+          <span class="cat-link">Explore Facials</span>
         </div>
+      </a>
 
-        <div class="treat-row">
-          <div class="treat-main">
-            <div class="treat-thumb"><img src="menu-photos/menu-signature-glow.jpg" alt="The Signature Glow facial treatment"></div>
-            <div class="info">
-              <h4>The Signature Glow</h4>
-              <div class="meta">75 min &middot; Most Popular</div>
-              <p>This customized facial combines advanced cleansing, targeted exfoliation, extractions, hydration, and infusion technology to reveal brighter, smoother, glowing skin.</p>
-              <div class="best-for">Best for: dullness, congestion, enlarged pores, and anyone seeking immediate radiance.</div>
-              <a href="facials-huntingdon-valley.html" style="display:inline-block;margin-top:0.6em;font-size:0.88rem;font-weight:600;color:var(--gold);">Full treatment details →</a>
-            </div>
-          </div>
-          <div class="price">$220</div>
+      <a href="chemical-peels-huntingdon-valley.html" class="treat-cat-card" style="--card-img:url('DSC07744.jpg');">
+        <div class="treat-cat-body">
+          <span class="eyebrow">From $165</span>
+          <h3>Chemical Peels</h3>
+          <p>Professional-grade peels and resurfacing treatments targeting pigmentation, acne, texture, and signs of aging.</p>
+          <span class="cat-link">Explore Peels</span>
         </div>
+      </a>
 
-        <div class="treat-row">
-          <div class="treat-main">
-            <div class="treat-thumb"><img src="menu-photos/menu-hydrasilk-facial.jpg" alt="The Hydrasilk Facial treatment"></div>
-            <div class="info">
-              <h4>The Hydrasilk Facial</h4>
-              <div class="meta">75 min</div>
-              <p>A deeply hydrating treatment focused on strengthening the skin barrier, restoring moisture levels, and improving overall skin comfort.</p>
-              <div class="best-for">Best for: dry, dehydrated &amp; sensitized skin.</div>
-              <a href="hydrating-facial-huntingdon-valley.html" style="display:inline-block;margin-top:0.6em;font-size:0.88rem;font-weight:600;color:var(--gold);">Full treatment details →</a>
-            </div>
-          </div>
-          <div class="price">$185</div>
+      <a href="microneedling-huntingdon-valley.html" class="treat-cat-card" style="--card-img:url('DSC07528.jpg');">
+        <div class="treat-cat-body">
+          <span class="eyebrow">From $325</span>
+          <h3>Microneedling</h3>
+          <p>SkinPen microneedling for acne scarring, fine lines, enlarged pores, and overall skin texture and firmness.</p>
+          <span class="cat-link">Explore Microneedling</span>
         </div>
+      </a>
 
-        <div class="treat-row">
-          <div class="treat-main">
-            <div class="treat-thumb"><img src="menu-photos/menu-clear-skin-detox.jpg" alt="The Clear Skin Detox facial treatment"></div>
-            <div class="info">
-              <h4>The Clear Skin Detox</h4>
-              <div class="meta">60 min</div>
-              <p>A corrective acne-focused treatment utilizing professional acne protocols to reduce congestion, calm inflammation, and support long-term skin clarity.</p>
-              <div class="best-for">Best for: acne-prone skin, breakouts, and congestion.</div>
-              <a href="acne-facial-huntingdon-valley.html" style="display:inline-block;margin-top:0.6em;font-size:0.88rem;font-weight:600;color:var(--gold);">Full treatment details →</a>
-            </div>
-          </div>
-          <div class="price">$160</div>
+      <a href="laser-body-treatments-huntingdon-valley.html" class="treat-cat-card" style="--card-img:url('DSC07662.jpg');">
+        <div class="treat-cat-body">
+          <span class="eyebrow">From $65</span>
+          <h3>Laser &amp; Body</h3>
+          <p>Laser hair removal, BBL photofacial, skin rejuvenation, acne BBL, carbon laser, and pigmentation &amp; vascular treatments.</p>
+          <span class="cat-link">Explore Laser &amp; Body</span>
         </div>
+      </a>
 
-        <div class="treat-row">
-          <div class="treat-main">
-            <div class="treat-thumb"><img src="menu-photos/menu-deep-pore-refinement.jpg" alt="The Deep Pore Refinement facial treatment"></div>
-            <div class="info">
-              <h4>The Deep Pore Refinement</h4>
-              <div class="meta">75 min</div>
-              <p>An intensive treatment focused on deep cleansing, advanced extractions, and pore refinement for smoother, clearer skin.</p>
-              <div class="best-for">Best for: enlarged pores, blackheads, and texture concerns.</div>
-              <a href="acne-facial-huntingdon-valley.html" style="display:inline-block;margin-top:0.6em;font-size:0.88rem;font-weight:600;color:var(--gold);">Full treatment details →</a>
-            </div>
-          </div>
-          <div class="price">$185</div>
+      <a href="tattoo-pmu-removal-huntingdon-valley.html" class="treat-cat-card" style="--card-img:url('DSC07636.jpg');">
+        <div class="treat-cat-body">
+          <span class="eyebrow">From $100</span>
+          <h3>Tattoo &amp; PMU Removal</h3>
+          <p>Q-switched Nd:YAG laser removal for body tattoos, microblading, powder brows, lip liner, and permanent makeup.</p>
+          <span class="cat-link">Explore Removal</span>
         </div>
+      </a>
 
-        <div class="treat-row">
-          <div class="treat-main">
-            <div class="treat-thumb"><img src="menu-photos/menu-oxygen-facial.jpg" alt="The Oxygen Facial treatment"></div>
-            <div class="info">
-              <h4>The Oxygen Facial</h4>
-              <div class="meta">75 min</div>
-              <p>A refreshing, hydration-focused treatment designed to leave dull, stressed, or sensitized skin looking brighter and feeling more comfortable.</p>
-              <div class="best-for">Best for: dull, stressed, tired, sensitive, and acne-prone skin.</div>
-              <a href="facials-huntingdon-valley.html" style="display:inline-block;margin-top:0.6em;font-size:0.88rem;font-weight:600;color:var(--gold);">Full treatment details →</a>
-            </div>
-          </div>
-          <div class="price">$185</div>
+      <a href="brow-lamination-huntingdon-valley.html" class="treat-cat-card" style="--card-img:url('DSC07730.jpg');">
+        <div class="treat-cat-body">
+          <span class="eyebrow">From $30</span>
+          <h3>Brows &amp; Lashes</h3>
+          <p>Brow lamination, brow tint, lash lift &amp; tint, and combo packages using Elleebana and Brow Code. Results last 4–6 weeks.</p>
+          <span class="cat-link">Explore Brows &amp; Lashes</span>
         </div>
+      </a>
 
-        <div class="treat-row">
-          <div class="treat-main">
-            <div class="treat-thumb"><img src="menu-photos/menu-timeless-lift.jpg" alt="The Timeless Lift facial treatment"></div>
-            <div class="info">
-              <h4>The Timeless Lift</h4>
-              <div class="meta">75 min</div>
-              <p>A rejuvenating treatment focused on improving firmness, elasticity, and overall skin vitality through advanced peptides and collagen-supporting technologies.</p>
-              <div class="best-for">Best for: fine lines, loss of elasticity, and preventative aging care.</div>
-              <a href="anti-aging-facial-huntingdon-valley.html" style="display:inline-block;margin-top:0.6em;font-size:0.88rem;font-weight:600;color:var(--gold);">Full treatment details →</a>
-            </div>
-          </div>
-          <div class="price">$185</div>
-        </div>
-
-        <div class="treat-row">
-          <div class="treat-main">
-            <div class="treat-thumb"><img src="menu-photos/menu-dermaplanning-facial.jpg" alt="The Dermaplaning Facial treatment"></div>
-            <div class="info">
-              <h4>The Dermaplaning Facial</h4>
-              <div class="meta">60 min</div>
-              <p>A professional exfoliation treatment that removes dead skin cells and vellus hair, leaving skin exceptionally smooth, bright, and radiant.</p>
-              <div class="best-for">Best for: texture concerns, dullness, makeup application, and special events.</div>
-              <a href="dermaplaning-huntingdon-valley.html" style="display:inline-block;margin-top:0.6em;font-size:0.88rem;font-weight:600;color:var(--gold);">Full treatment details →</a>
-            </div>
-          </div>
-          <div class="price">$185</div>
-        </div>
-
-      </div>
     </div>
 
   </div>
@@ -238,145 +284,6 @@
 
 <section>
   <div class="container">
-
-    <div class="category-block">
-      <div class="category-title"><h2>Advanced Skin Treatments</h2></div>
-      <div class="treat-list">
-
-        <div class="treat-row">
-          <div class="treat-main">
-            <div class="treat-thumb"><img src="menu-photos/menu-biorepeel-allseason.jpg" alt="BioRePeel All Season Peel treatment"></div>
-            <div class="info">
-              <h4>BioRePeel&reg; All Season Peel</h4>
-              <div class="meta">60 min</div>
-              <p>BioRePeel is a professional, minimal-downtime peel designed to support smoother texture, brighter tone, and refreshed-looking skin. Many clients experience little to no visible peeling, although mild dryness or flaking may occur. BioRePeel may be performed year-round for appropriate candidates, but daily sun protection and individualized aftercare remain essential.</p>
-              <div class="best-for">Best for: candidacy confirmed at consultation</div>
-              <a href="biorepeel-huntingdon-valley.html" style="display:inline-block;margin-top:0.6em;font-size:0.88rem;font-weight:600;color:var(--gold);">Full treatment details →</a>
-            </div>
-          </div>
-          <div class="price">$195</div>
-        </div>
-
-        <div class="treat-row">
-          <div class="treat-main">
-            <div class="treat-thumb"><img src="menu-photos/menu-swich-dermal.jpg" alt="SWICH Dermal Rejuvenation treatment"></div>
-            <div class="info">
-              <h4>SWICH&trade; Dermal Rejuvenation</h4>
-              <div class="meta">60 min</div>
-              <p>An innovative alternative to traditional chemical peels that stimulates cellular energy and supports natural skin rejuvenation without excessive peeling.</p>
-              <div class="best-for">Best for: aging skin, pigmentation, dullness, and preventative correction.</div>
-              <a href="chemical-peels-huntingdon-valley.html" style="display:inline-block;margin-top:0.6em;font-size:0.88rem;font-weight:600;color:var(--gold);">Full treatment details →</a>
-            </div>
-          </div>
-          <div class="price">$225</div>
-        </div>
-
-        <div class="treat-row">
-          <div class="treat-main">
-            <div class="treat-thumb"><img src="menu-photos/menu-microneedling.jpg" alt="Microneedling treatment"></div>
-            <div class="info">
-              <h4>Professional Microneedling</h4>
-              <div class="meta">75 min</div>
-              <p>A customized SkinPen microneedling treatment performed according to manufacturer guidance and professional safety protocols. Appropriate recovery care is selected based on the client&rsquo;s skin needs.</p>
-              <div class="best-for">Best for: acne scarring, fine lines, enlarged pores, and skin texture.</div>
-              <a href="microneedling-huntingdon-valley.html" style="display:inline-block;margin-top:0.6em;font-size:0.88rem;font-weight:600;color:var(--gold);">Full treatment details →</a>
-            </div>
-          </div>
-          <div class="price">$325</div>
-        </div>
-
-      </div>
-    </div>
-
-    <div class="category-block">
-      <div class="category-title"><h2>Chemical Peels</h2></div>
-      <p style="margin-bottom:1.6em;">Customized corrective peels and advanced professional protocols to address pigmentation, acne, texture, and signs of aging. <a href="chemical-peels-huntingdon-valley.html" style="color:var(--gold);font-weight:600;">Learn about our peel options →</a></p>
-      <div class="treat-list">
-
-        <div class="treat-row">
-          <div class="treat-main">
-            <div class="treat-thumb"><img src="menu-photos/treat-photos/glow-renewal-peel.jpg" alt="Glow Renewal Peel"></div>
-            <div class="info"><h4>Glow Renewal Peel</h4></div>
-          </div>
-          <div class="price">From $165</div>
-        </div>
-        <div class="treat-row">
-          <div class="treat-main">
-            <div class="treat-thumb"><img src="menu-photos/treat-photos/brightening-complexion-peel.jpg" alt="Brightening Complexion Peel"></div>
-            <div class="info"><h4>Brightening Complexion Peel</h4></div>
-          </div>
-          <div class="price">From $180</div>
-        </div>
-        <div class="treat-row">
-          <div class="treat-main">
-            <div class="treat-thumb"><img src="menu-photos/treat-photos/clear-skin-detox-peel.jpg" alt="Clear Skin Detox Peel"></div>
-            <div class="info"><h4>Clear Skin Detox Peel</h4></div>
-          </div>
-          <div class="price">From $175</div>
-        </div>
-        <div class="treat-row">
-          <div class="treat-main">
-            <div class="treat-thumb"><img src="menu-photos/treat-photos/advanced-corrective-peel.jpg" alt="Advanced Corrective Peel" style="object-position: center 30%;"></div>
-            <div class="info"><h4>Advanced Corrective Peel</h4></div>
-          </div>
-          <div class="price">From $195</div>
-        </div>
-        <div class="treat-row">
-          <div class="treat-main">
-            <div class="treat-thumb"><img src="menu-photos/treat-photos/vi-peel.jpg" alt="VI Peel" style="object-position: center 30%;"></div>
-            <div class="info"><h4>VI Peel</h4></div>
-          </div>
-          <div class="price">From $250</div>
-        </div>
-
-      </div>
-      <p style="margin-top:1.4em;"><em>Buy a course of 4 or more treatments and receive 15% off. Recommended as a 4 to 6 session course for optimal results.</em></p>
-    </div>
-
-    <div class="category-block">
-      <div class="category-title"><h2>Brows &amp; Lashes</h2></div>
-      <p style="margin-bottom:1.6em;">Professional brow lamination and lash lift services using Elleebana and Brow Code. Results last 4&ndash;6 weeks. <a href="brow-lamination-huntingdon-valley.html" style="color:var(--gold);font-weight:600;">Brow details →</a> &nbsp;<a href="lash-lift-huntingdon-valley.html" style="color:var(--gold);font-weight:600;">Lash details →</a></p>
-      <div class="treat-list">
-
-        <div class="treat-row">
-          <div class="treat-main">
-            <div class="treat-thumb"><img src="menu-photos/treat-photos/brow-tint.jpg" alt="Brow Tint" style="object-position: center 30%;"></div>
-            <div class="info"><h4>Brow Tint</h4><div class="meta">20 min</div></div>
-          </div>
-          <div class="price">$30</div>
-        </div>
-        <div class="treat-row">
-          <div class="treat-main">
-            <div class="treat-thumb"><img src="menu-photos/treat-photos/brow-lamination-tint.jpg" alt="Brow Lamination and Tint"></div>
-            <div class="info"><h4>Brow Lamination &amp; Tint</h4><div class="meta">45 min</div></div>
-          </div>
-          <div class="price">$90</div>
-        </div>
-        <div class="treat-row">
-          <div class="treat-main">
-            <div class="treat-thumb"><img src="menu-photos/treat-photos/brow-lash-combo-tint.jpg" alt="Brow and Lash Lift Combo plus Tint"></div>
-            <div class="info"><h4>Brow &amp; Lash Lift Combo + Tint</h4><div class="meta">70 min</div></div>
-          </div>
-          <div class="price">$165</div>
-        </div>
-        <div class="treat-row">
-          <div class="treat-main">
-            <div class="treat-thumb"><img src="menu-photos/treat-photos/lash-tint.jpg" alt="Lash Tint" style="object-position: center 30%;"></div>
-            <div class="info"><h4>Lash Tint</h4><div class="meta">20 min</div></div>
-          </div>
-          <div class="price">$30</div>
-        </div>
-        <div class="treat-row">
-          <div class="treat-main">
-            <div class="treat-thumb"><img src="menu-photos/treat-photos/lash-lift-tint.jpg" alt="Lash Lift and Tint"></div>
-            <div class="info"><h4>Lash Lift &amp; Tint</h4><div class="meta">60 min</div></div>
-          </div>
-          <div class="price">$110</div>
-        </div>
-
-      </div>
-    </div>
-
     <div class="category-block" style="margin-bottom:0;">
       <div class="category-title"><h2>Skin Consultation</h2></div>
       <div class="treat-list">
@@ -393,7 +300,6 @@
         </div>
       </div>
     </div>
-
   </div>
 </section>
 
@@ -410,7 +316,7 @@
     <div class="footer-grid">
       <div>
         <h3>SkinArt Aesthetics</h3>
-        <p>A boutique skincare studio in Huntingdon Valley, PA, focused on personalized, results-driven facials and skin treatments.</p>
+        <p>A advanced skin & laser studio in Huntingdon Valley, PA, focused on personalized, results-driven facials and skin treatments.</p>
         <div class="social-row">
           <a href="https://www.instagram.com/skinartaesthetics/" target="_blank" rel="noopener" aria-label="Instagram">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/></svg>
@@ -428,7 +334,7 @@
           <li><a href="treatments.html">Treatments</a></li>
           <li><a href="postcare.html">Post Care instructions</a></li>
           <li><a href="shop.html">Shop</a></li>
-          <li><a href="blog.html">Blog</a></li>
+          <li><a href="blog.html">Concerns</a></li>
           <li><a href="contact.html">Contact us</a></li>
           <li><a href="policies.html">Policies</a></li>
         </ul>
