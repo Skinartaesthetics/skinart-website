@@ -107,19 +107,26 @@ var RECAPTCHA_SITE_KEY = "6Lf6MNYtAAAAAESn9s14jfLaf6q63zS6bFJ6xhbU";
       }
       statusEl.hidden = true;
 
-      // Get reCAPTCHA v3 token (invisible — no user interaction needed)
+      // Get reCAPTCHA v3 token (invisible — no user interaction needed).
+      // grecaptcha.execute() can silently hang if the key has a domain
+      // mismatch or reCAPTCHA is slow — guard with a 5-second timeout so
+      // we always fall through to doSubmit rather than leaving the button
+      // stuck at "Sending..." forever.
       if (typeof grecaptcha !== "undefined" && RECAPTCHA_SITE_KEY !== "YOUR_RECAPTCHA_SITE_KEY") {
+        var captchaDone = false;
+        var captchaTimer = setTimeout(function () {
+          if (!captchaDone) { captchaDone = true; doSubmit(""); }
+        }, 5000);
+
         grecaptcha.ready(function () {
           grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: "contact_form" }).then(function (token) {
-            doSubmit(token);
+            if (!captchaDone) { captchaDone = true; clearTimeout(captchaTimer); doSubmit(token); }
           }).catch(function () {
-            // reCAPTCHA failed to execute — still submit without token
-            // (server will handle accordingly)
-            doSubmit("");
+            if (!captchaDone) { captchaDone = true; clearTimeout(captchaTimer); doSubmit(""); }
           });
         });
       } else {
-        // reCAPTCHA not configured yet — submit without token
+        // reCAPTCHA not loaded — submit without token (server handles gracefully)
         doSubmit("");
       }
     });
