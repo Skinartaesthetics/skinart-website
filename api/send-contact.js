@@ -27,6 +27,40 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || "").trim());
 }
 
+// Verify reCAPTCHA v3 token with Google.
+// Returns { valid: true } if score >= 0.5, otherwise { valid: false, reason }.
+async function verifyRecaptcha(token) {
+  const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+  if (!secretKey) {
+    // Not configured — allow submission (graceful degradation)
+    return { valid: true };
+  }
+  if (!token) {
+    return { valid: false, reason: "Missing reCAPTCHA token" };
+  }
+  try {
+    const res = await fetch("https://www.google.com/recaptcha/api/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `secret=${encodeURIComponent(secretKey)}&response=${encodeURIComponent(token)}`,
+    });
+    const data = await res.json();
+    if (!data.success) {
+      return { valid: false, reason: "reCAPTCHA verification failed" };
+    }
+    // Score: 1.0 = very likely human, 0.0 = very likely bot. Block below 0.5.
+    if (typeof data.score === "number" && data.score < 0.5) {
+      console.warn("reCAPTCHA low score:", data.score);
+      return { valid: false, reason: "Bot detected" };
+    }
+    return { valid: true };
+  } catch (err) {
+    console.error("reCAPTCHA verify threw:", err);
+    // Network error checking reCAPTCHA — allow through rather than block real users
+    return { valid: true };
+  }
+}
+
 function getEmailApiKey() {
   return process.env.RESEND_API_KEY || process.env.EMAIL_API_KEY || null;
 }
@@ -101,8 +135,16 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { first_name, last_name, email, phone, interest, message, pageUrl, sessionId } = req.body || {};
+  const { first_name, last_name, email, phone, interest, message, pageUrl, sessionId, recaptchaToken } = req.body || {};
   const userAgent = req.headers["user-agent"];
+
+  // ---- reCAPTCHA verification ----
+  const captchaResult = await verifyRecaptcha(recaptchaToken);
+  if (!captchaResult.valid) {
+    console.warn("Contact form blocked by reCAPTCHA:", captchaResult.reason);
+    res.status(400).json({ success: false, error: "Your submission could not be verified. Please try again or contact us directly." });
+    return;
+  }
 
   // ---- Validation (mirrors the required fields already marked * on the form) ----
   const errors = [];

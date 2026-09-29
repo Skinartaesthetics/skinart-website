@@ -1,17 +1,16 @@
 /* ==========================================================================
    SkinArt Aesthetics — Contact form submit handler
 
-   The "Request a Consultation" form on contact.html used to have
-   action="#" method="POST" with nothing intercepting submit, so clicking
-   "Send Request" did a raw browser POST to the page itself — which Vercel's
-   static hosting can't handle, producing a blank page.
+   Prevents the native submit, gets a reCAPTCHA v3 token (invisible to
+   real users), then sends everything to /api/send-contact which verifies
+   the token server-side before emailing the studio via Resend.
 
-   This file prevents the native submit, sends the data to the new
-   /api/send-contact serverless endpoint instead, and shows an inline
-   success or error message in its place. It does not touch
-   js/ga4-events.js's own "submit" listener on .contact-form (GA4 tracking
-   keeps working unchanged — both listeners fire independently).
+   Replace YOUR_RECAPTCHA_SITE_KEY below with your actual reCAPTCHA v3
+   site key from https://www.google.com/recaptcha/admin
    ========================================================================== */
+
+var RECAPTCHA_SITE_KEY = "6Lf6MNYtAAAAAESn9s14jfLaf6q63zS6bFJ6xhbU";
+
 (function () {
   "use strict";
 
@@ -37,9 +36,7 @@
       statusEl.hidden = false;
     }
 
-    form.addEventListener("submit", function (e) {
-      e.preventDefault();
-
+    function doSubmit(recaptchaToken) {
       const data = new FormData(form);
       const payload = {
         first_name: data.get("first_name"),
@@ -49,13 +46,8 @@
         interest: data.get("interest"),
         message: data.get("message"),
         pageUrl: window.location.href,
+        recaptchaToken: recaptchaToken || "",
       };
-
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = "Sending...";
-      }
-      statusEl.hidden = true;
 
       fetch("/api/send-contact", {
         method: "POST",
@@ -88,6 +80,32 @@
             submitBtn.textContent = originalBtnText;
           }
         });
+    }
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Sending...";
+      }
+      statusEl.hidden = true;
+
+      // Get reCAPTCHA v3 token (invisible — no user interaction needed)
+      if (typeof grecaptcha !== "undefined" && RECAPTCHA_SITE_KEY !== "YOUR_RECAPTCHA_SITE_KEY") {
+        grecaptcha.ready(function () {
+          grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: "contact_form" }).then(function (token) {
+            doSubmit(token);
+          }).catch(function () {
+            // reCAPTCHA failed to execute — still submit without token
+            // (server will handle accordingly)
+            doSubmit("");
+          });
+        });
+      } else {
+        // reCAPTCHA not configured yet — submit without token
+        doSubmit("");
+      }
     });
   });
 })();
