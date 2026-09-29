@@ -168,7 +168,10 @@ export default async function handler(req, res) {
     submittedAt,
   });
 
-  await logEvent({
+  // Fire-and-forget — analytics must never block the HTTP response.
+  // (analytics.js is designed to be best-effort; losing an event occasionally
+  // is fine; leaving the user's form stuck at "Sending..." is not.)
+  logEvent({
     eventName: "contact_form_submitted",
     pageUrl,
     sessionId,
