@@ -49,14 +49,25 @@ var RECAPTCHA_SITE_KEY = "6Lf6MNYtAAAAAESn9s14jfLaf6q63zS6bFJ6xhbU";
         recaptchaToken: recaptchaToken || "",
       };
 
+      // Abort the fetch if the server takes longer than 15 seconds to respond.
+      // This guarantees the button always resets regardless of server-side issues.
+      var controller = new AbortController();
+      var timeoutId = setTimeout(function () {
+        controller.abort();
+      }, 15000);
+
       fetch("/api/send-contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       })
         .then(function (res) {
-          return res.json().then(function (body) {
-            return { ok: res.ok, body };
+          clearTimeout(timeoutId);
+          return res.text().then(function (text) {
+            var body;
+            try { body = JSON.parse(text); } catch (e) { body = null; }
+            return { ok: res.ok, status: res.status, body: body };
           });
         })
         .then(function (result) {
@@ -71,10 +82,15 @@ var RECAPTCHA_SITE_KEY = "6Lf6MNYtAAAAAESn9s14jfLaf6q63zS6bFJ6xhbU";
             );
           }
         })
-        .catch(function () {
-          setStatus("Something went wrong sending your request. Please call or email us directly.", true);
+        .catch(function (err) {
+          clearTimeout(timeoutId);
+          var msg = err && err.name === "AbortError"
+            ? "Request timed out. Please call or email us directly."
+            : "Something went wrong sending your request. Please call or email us directly.";
+          setStatus(msg, true);
         })
         .finally(function () {
+          clearTimeout(timeoutId);
           if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.textContent = originalBtnText;
