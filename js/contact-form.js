@@ -36,6 +36,12 @@ var RECAPTCHA_SITE_KEY = "6Lf6MNYtAAAAAESn9s14jfLaf6q63zS6bFJ6xhbU";
       statusEl.hidden = false;
     }
 
+    function escName(str) {
+      return String(str).replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    }
+
     function doSubmit(recaptchaToken) {
       const data = new FormData(form);
       const payload = {
@@ -72,8 +78,18 @@ var RECAPTCHA_SITE_KEY = "6Lf6MNYtAAAAAESn9s14jfLaf6q63zS6bFJ6xhbU";
         })
         .then(function (result) {
           if (result.ok && result.body && result.body.success) {
-            form.reset();
-            setStatus("Thank you! Your request has been sent — we'll be in touch shortly.", false);
+            // Replace the entire form section with a full confirmation screen
+            var firstName = (new FormData(form)).get("first_name") || "";
+            var container = form.closest(".container") || form.parentElement;
+            container.innerHTML =
+              '<div style="text-align:center;padding:4em 1em 3em;">' +
+                '<div style="font-size:3.5rem;color:var(--gold,#6f7a63);margin-bottom:.4em;line-height:1;">✓</div>' +
+                '<h2 style="margin-bottom:.6em;">Thank you' + (firstName ? ', ' + escName(firstName) : '') + '!</h2>' +
+                '<p style="max-width:460px;margin:0 auto 2em;color:#666;line-height:1.75;">' +
+                  'We received your request and will be in touch shortly to find a time that works for you.' +
+                '</p>' +
+                '<a href="treatments.html" class="btn btn-solid">Explore Treatments</a>' +
+              '</div>';
           } else {
             setStatus(
               (result.body && result.body.error) ||
