@@ -1396,3 +1396,47 @@ footer.site-footer .footer-links-cols { display: grid; grid-template-columns: 1f
   padding-bottom: 1px;
 }
 .rev-cta:hover { color: var(--maroon); border-color: var(--maroon); }
+
+/* ---------- Brand Partners Strip ---------- */
+.brand-strip {
+  background: var(--cream);
+  border-top: 1px solid var(--line);
+  padding: 2.8em 0 2.6em;
+  text-align: center;
+}
+.brand-strip .eyebrow {
+  display: block;
+  margin-bottom: 1.4em;
+}
+.brand-strip-logos {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: .5em 0;
+}
+.brand-strip-logos > span {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.15rem;
+  letter-spacing: .2em;
+  color: var(--maroon);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.brand-plus {
+  font-family: 'Jost', sans-serif;
+  font-size: .8em;
+  letter-spacing: 0;
+  vertical-align: super;
+  text-transform: none;
+}
+.brand-divider {
+  color: var(--gold-light);
+  font-size: 1.2rem;
+  padding: 0 1.2em;
+  letter-spacing: 0;
+}
+@media (max-width: 640px) {
+  .brand-divider { display: none; }
+  .brand-strip-logos { gap: .9em 2.2em; }
+}
