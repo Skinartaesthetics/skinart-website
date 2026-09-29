@@ -1396,39 +1396,3 @@ footer.site-footer .footer-links-cols { display: grid; grid-template-columns: 1f
   padding-bottom: 1px;
 }
 .rev-cta:hover { color: var(--maroon); border-color: var(--maroon); }
-
-/* ---------- Brand Partners Strip ---------- */
-.brand-strip {
-  background: var(--cream);
-  border-top: 1px solid var(--line);
-  padding: 2.8em 0 2.6em;
-  text-align: center;
-}
-.brand-strip .eyebrow {
-  display: block;
-  margin-bottom: 1.6em;
-}
-.brand-strip-logos {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: 1.5em 3em;
-}
-.brand-logo {
-  height: 38px;
-  width: auto;
-  max-width: 130px;
-  object-fit: contain;
-  opacity: .75;
-  filter: grayscale(100%);
-  transition: opacity .25s, filter .25s;
-}
-.brand-logo:hover {
-  opacity: 1;
-  filter: grayscale(0%);
-}
-@media (max-width: 640px) {
-  .brand-strip-logos { gap: 1.4em 2.4em; }
-  .brand-logo { height: 30px; max-width: 100px; }
-}
