@@ -9,7 +9,7 @@
    site key from https://www.google.com/recaptcha/admin
    ========================================================================== */
 
-var RECAPTCHA_SITE_KEY = "6Lf6MNYtAAAAAESn9s14jfLaf6q63zS6bFJ6xhbU";
+var RECAPTCHA_SITE_KEY = "6Lf6MNYtAAAAALPLOm8X-gXSkdASkYsHrK821mTE";
 
 (function () {
   "use strict";
