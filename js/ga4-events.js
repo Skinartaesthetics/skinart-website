@@ -10,16 +10,19 @@
    submit event is detected the same read-only way js/analytics.js already
    detects that funnel's steps (watching the widget's own markup change).
 
-   Events fired here:
-     - book_now_click       any link to the external GlossGenius booking
+   Key Events (mark these in GA4 Admin → Events → Toggle "Key event"):
+     - book_click           any link to the external GlossGenius booking
                             domain (header, body CTAs, and the AI widget's
-                            own "Schedule Appointment" button all use this
-                            same domain) — sent with transport_type: "beacon"
-                            so the hit is queued before the browser follows
-                            the link off-site.
+                            own "Schedule Appointment" button) — sent with
+                            transport_type: "beacon" so the hit is queued
+                            before the browser follows the link off-site.
      - phone_click          any tel: link, site-wide.
+     - email_click          any mailto: link, site-wide.
+     - social_click         any link to Instagram or Facebook, site-wide.
+     - generate_lead        the on-site contact form submission.
+
+   Additional events (not Key Events, but useful for analysis):
      - directions_click     the "Get Directions" link on the Contact page.
-     - contact_form_submit  the on-site contact form.
      - treatment_view       each individual treatment row on the Treatments
                             page, the first time it scrolls into view.
      - skin_analysis_submit the moment a client's photo + form is submitted
@@ -36,8 +39,8 @@
     try {
       // transport_type: "beacon" asks the browser to send the hit via the
       // Beacon API when possible, so events tied to a click that immediately
-      // navigates away (book_now_click, directions_click) still get
-      // delivered instead of being cancelled mid-flight by the page unload.
+      // navigates away (book_click, directions_click) still get delivered
+      // instead of being cancelled mid-flight by the page unload.
       window.gtag("event", eventName, Object.assign({ transport_type: "beacon" }, params || {}));
     } catch (e) {
       /* GA4 tracking must never throw into the page */
@@ -47,22 +50,50 @@
   /* ---------------- Delegated click tracking ---------------- */
   function setupClickTracking() {
     document.addEventListener("click", function (e) {
-      const bookNow = e.target.closest('a[href*="glossgenius.com"]');
-      if (bookNow) {
-        ga4("book_now_click", {
-          link_text: (bookNow.textContent || "").trim(),
-          link_url: bookNow.href,
+
+      // Booking link (GlossGenius domain)
+      var bookLink = e.target.closest('a[href*="glossgenius.com"]');
+      if (bookLink) {
+        ga4("book_click", {
+          link_text: (bookLink.textContent || "").trim(),
+          link_url: bookLink.href,
         });
         return;
       }
 
-      const phoneLink = e.target.closest('a[href^="tel:"]');
+      // Phone link
+      var phoneLink = e.target.closest('a[href^="tel:"]');
       if (phoneLink) {
-        ga4("phone_click", { link_text: (phoneLink.textContent || "").trim() });
+        ga4("phone_click", {
+          link_text: (phoneLink.textContent || "").trim(),
+        });
         return;
       }
 
-      const directionsLink = e.target.closest("#directions-link");
+      // Email link
+      var emailLink = e.target.closest('a[href^="mailto:"]');
+      if (emailLink) {
+        ga4("email_click", {
+          link_text: (emailLink.textContent || "").trim(),
+          link_url: emailLink.href,
+        });
+        return;
+      }
+
+      // Social links (Instagram and Facebook)
+      var socialLink = e.target.closest(
+        'a[href*="instagram.com"], a[href*="facebook.com"]'
+      );
+      if (socialLink) {
+        ga4("social_click", {
+          link_text: (socialLink.getAttribute("aria-label") || socialLink.textContent || "").trim(),
+          link_url: socialLink.href,
+        });
+        return;
+      }
+
+      // Directions link (Contact page)
+      var directionsLink = e.target.closest("#directions-link");
       if (directionsLink) {
         ga4("directions_click", {});
         return;
@@ -70,12 +101,14 @@
     });
   }
 
-  /* ---------------- Contact form submit ---------------- */
+  /* ---------------- Contact form submit (generate_lead) ---------------- */
   function setupFormTracking() {
     document.addEventListener("submit", function (e) {
-      const form = e.target.closest(".contact-form");
+      var form = e.target.closest(".contact-form");
       if (!form) return;
-      ga4("contact_form_submit", {});
+      ga4("generate_lead", {
+        form_id: "contact_form",
+      });
     });
   }
 
@@ -85,18 +118,18 @@
      detected as that row scrolling into view — fired once per row per page
      load, with the treatment's own name as a parameter. */
   function setupTreatmentViewTracking() {
-    const rows = document.querySelectorAll(".treat-row");
+    var rows = document.querySelectorAll(".treat-row");
     if (!rows.length || !("IntersectionObserver" in window)) return;
 
-    const seen = new WeakSet();
-    const obs = new IntersectionObserver(
+    var seen = new WeakSet();
+    var obs = new IntersectionObserver(
       function (entries) {
         entries.forEach(function (entry) {
           if (!entry.isIntersecting) return;
-          const row = entry.target;
+          var row = entry.target;
           if (seen.has(row)) return;
           seen.add(row);
-          const nameEl = row.querySelector(".info h4");
+          var nameEl = row.querySelector(".info h4");
           ga4("treatment_view", {
             treatment_name: nameEl ? nameEl.textContent.trim() : "",
           });
@@ -120,13 +153,13 @@
      (lastStep) rather than a one-time flag, so a second submission after a
      retake is still counted. */
   function whenElementExists(selector, callback) {
-    const existing = document.querySelector(selector);
+    var existing = document.querySelector(selector);
     if (existing) {
       callback(existing);
       return;
     }
-    const observer = new MutationObserver(function () {
-      const el = document.querySelector(selector);
+    var observer = new MutationObserver(function () {
+      var el = document.querySelector(selector);
       if (el) {
         observer.disconnect();
         callback(el);
@@ -137,9 +170,9 @@
 
   function setupSkinAnalysisSubmitTracking() {
     whenElementExists("#ai-chat-body", function (bodyEl) {
-      let lastStep = null;
-      const stepObserver = new MutationObserver(function () {
-        const step = bodyEl.querySelector(".ai-loading") ? "analyzing" : null;
+      var lastStep = null;
+      var stepObserver = new MutationObserver(function () {
+        var step = bodyEl.querySelector(".ai-loading") ? "analyzing" : null;
         if (step === "analyzing" && lastStep !== "analyzing") {
           ga4("skin_analysis_submit", {});
         }
