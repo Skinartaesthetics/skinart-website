@@ -445,7 +445,7 @@ nav.main-nav a:hover { color: var(--gold-light); }
   .nav-dropdown { position: static; width: 100%; display: block; }
   .nav-dropdown > a::after { content: ' ▾'; font-size: .75em; opacity: .7; transition: transform .25s ease; }
   .nav-dropdown.open > a::after { content: ' ▴'; }
-  .nav-dropdown-menu { display: none; background: rgba(90,80,70,.07); }
+  .nav-dropdown-menu { display: none; background: rgba(90,80,70,.07); position: static; transform: none; top: auto; left: auto; min-width: 0; box-shadow: none; z-index: auto; }
   .nav-dropdown-menu.open { display: block; }
   .nav-dropdown-menu a {
     padding-left: 42px;
