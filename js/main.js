@@ -33,23 +33,8 @@ document.addEventListener('DOMContentLoaded', function () {
     backdrop.addEventListener('click', closeMenu);
   }
 
-  // Mobile treatments dropdown accordion
-  var navDropdown = document.querySelector('.nav-dropdown');
-  var navDropdownMenu = document.querySelector('.nav-dropdown-menu');
-  if (navDropdown && navDropdownMenu) {
-    var dropdownToggle = navDropdown.querySelector(':scope > a');
-    if (dropdownToggle) {
-      dropdownToggle.addEventListener('click', function (e) {
-        // Only intercept on mobile (menu-toggle visible)
-        var toggle = document.querySelector('.menu-toggle');
-        if (toggle && getComputedStyle(toggle).display !== 'none') {
-          e.preventDefault();
-          navDropdown.classList.toggle('open');
-          navDropdownMenu.classList.toggle('open');
-        }
-      });
-    }
-  }
+  // Mobile: nav-dropdown links navigate directly to their page (no accordion).
+  // Submenus are hidden on mobile via CSS; desktop hover behaviour is unchanged.
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && nav && nav.classList.contains('open')) {
       closeMenu();
