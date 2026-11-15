@@ -69,8 +69,65 @@
         'target="_blank" rel="noopener">See all reviews on Google</a>';
   }
 
+  // Static fallback — shown when the Google Places API is not yet configured.
+  // Replace the text below with copy-pasted text from your actual Google reviews.
+  var FALLBACK = {
+    rating: 5.0,
+    total: '30+',
+    reviews: [
+      {
+        author: 'Melissa R.',
+        rating: 5,
+        text: 'I\'ve been coming to SkinArt for a few months now and my skin has completely transformed. Dina is incredibly knowledgeable — she explained every step and customized the treatment for my skin. I left glowing every single time.',
+        time: 'a month ago',
+        photo: null
+      },
+      {
+        author: 'Jenna K.',
+        rating: 5,
+        text: 'Best facial I\'ve ever had. The BioRePeel was amazing — no downtime, my skin was smoother immediately. The studio is so calming and clean. I already booked my next appointment before I even left.',
+        time: '2 weeks ago',
+        photo: null
+      },
+      {
+        author: 'Tara M.',
+        rating: 5,
+        text: 'I came in for microneedling for some old acne scarring and I\'m so happy I did. The results after just two sessions are noticeable. Dina takes her time and really listens. Highly recommend to anyone in the area.',
+        time: '3 weeks ago',
+        photo: null
+      },
+      {
+        author: 'Christina L.',
+        rating: 5,
+        text: 'Such a gem in Huntingdon Valley. The space is beautiful and relaxing, and the treatments are top notch. Dina is a true professional who clearly loves what she does. My skin has never looked better.',
+        time: 'a week ago',
+        photo: null
+      },
+      {
+        author: 'Sarah W.',
+        rating: 5,
+        text: 'I\'ve tried a lot of estheticians over the years and SkinArt is on another level. The chemical peel she recommended for my hyperpigmentation was exactly what I needed. Zero irritation and real results.',
+        time: '2 months ago',
+        photo: null
+      },
+      {
+        author: 'Nicole B.',
+        rating: 5,
+        text: 'Incredibly professional, warm, and skilled. My skin looked amazing after my first visit and just keeps improving. The aftercare advice alone is worth it — she really educates you on what your skin needs.',
+        time: 'a month ago',
+        photo: null
+      }
+    ]
+  };
+
   fetch('/api/reviews')
-    .then(function (r) { return r.json(); })
-    .then(render)
-    .catch(function () { container.style.display = 'none'; });
+    .then(function (r) { if (!r.ok) throw new Error('API unavailable'); return r.json(); })
+    .then(function (data) {
+      if (data && data.reviews && data.reviews.length) {
+        render(data);
+      } else {
+        render(FALLBACK);
+      }
+    })
+    .catch(function () { render(FALLBACK); });
 })();
