@@ -78,8 +78,13 @@
 .ai-bubble-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
 .ai-bubble-btn .ai-bubble-label { white-space: nowrap; }
 
+@media (max-width: 1080px) {
+  /* Lift bubble above the sticky booking bar (~72px) */
+  .ai-bubble-wrap { bottom: calc(72px + 14px); }
+}
+
 @media (max-width: 600px) {
-  .ai-bubble-wrap { right: 14px; bottom: 14px; }
+  .ai-bubble-wrap { right: 14px; bottom: calc(72px + 14px); }
   .ai-bubble-btn { padding: .8em 1em; font-size: .82rem; }
   .ai-bubble-tooltip { max-width: 190px; font-size: .8rem; }
 }
