@@ -69,52 +69,65 @@
         'target="_blank" rel="noopener">See all reviews on Google</a>';
   }
 
-  // Static fallback — shown when the Google Places API is not yet configured.
-  // Replace the text below with copy-pasted text from your actual Google reviews.
+  // Real Google reviews from SkinArt Aesthetics listing
   var FALLBACK = {
     rating: 5.0,
-    total: '30+',
+    total: '28',
     reviews: [
       {
-        author: 'Melissa R.',
+        author: 'Anastasiia Ostrovska',
         rating: 5,
-        text: 'I\'ve been coming to SkinArt for a few months now and my skin has completely transformed. Dina is incredibly knowledgeable — she explained every step and customized the treatment for my skin. I left glowing every single time.',
-        time: 'a month ago',
-        photo: null
-      },
-      {
-        author: 'Jenna K.',
-        rating: 5,
-        text: 'Best facial I\'ve ever had. The BioRePeel was amazing — no downtime, my skin was smoother immediately. The studio is so calming and clean. I already booked my next appointment before I even left.',
-        time: '2 weeks ago',
-        photo: null
-      },
-      {
-        author: 'Tara M.',
-        rating: 5,
-        text: 'I came in for microneedling for some old acne scarring and I\'m so happy I did. The results after just two sessions are noticeable. Dina takes her time and really listens. Highly recommend to anyone in the area.',
+        text: 'I\'m incredibly happy with my visit! Dina is a wonderful professional who explains everything clearly, thoroughly, and in an easy-to-understand way. She did an amazing job — very professionally, carefully, and with great attention to detail. You can truly feel her expertise and passion for what she does. I loved everything about my experience! I highly recommend Dina and will definitely be coming back!',
         time: '3 weeks ago',
         photo: null
       },
       {
-        author: 'Christina L.',
+        author: 'Samina',
         rating: 5,
-        text: 'Such a gem in Huntingdon Valley. The space is beautiful and relaxing, and the treatments are top notch. Dina is a true professional who clearly loves what she does. My skin has never looked better.',
-        time: 'a week ago',
+        text: 'This was my first time going here and from the start, I could already tell that this would be a nice and relaxing experience. The inside of the studio is very clean and calming. She makes sure to understand the products you use, your skincare routine, and the amount of water you drink to let you know if any changes are needed for your skin type. I got an explanation of all the things that were going to get put on my face and what they were going to do. Highly recommend.',
+        time: '3 weeks ago',
         photo: null
       },
       {
-        author: 'Sarah W.',
+        author: 'Kristina Pakhomova',
         rating: 5,
-        text: 'I\'ve tried a lot of estheticians over the years and SkinArt is on another level. The chemical peel she recommended for my hyperpigmentation was exactly what I needed. Zero irritation and real results.',
-        time: '2 months ago',
+        text: 'I absolutely love my experience with Dina! I\'ve had several treatments with her, including facials, chemical peels, and PDRN, and I couldn\'t be happier! My skin looks healthier, smoother, and more radiant, and I genuinely trust her with my face! What makes her special is how much she cares about her clients and the results she delivers. Highly recommend her!!!',
+        time: '7 weeks ago',
         photo: null
       },
       {
-        author: 'Nicole B.',
+        author: 'emily gindele',
         rating: 5,
-        text: 'Incredibly professional, warm, and skilled. My skin looked amazing after my first visit and just keeps improving. The aftercare advice alone is worth it — she really educates you on what your skin needs.',
-        time: 'a month ago',
+        text: 'I had such a great experience at SkinArt! I got a HydraFacial with dermaplaning, and I absolutely loved it. My skin felt so clean, smooth, and refreshed afterward, and I could immediately see a difference in how bright and glowy my skin looked. I get facials to relax, feel pampered, and look amazing afterwards. And that\'s exactly how I left there. I\'ll definitely be going back and would highly recommend SkinArt to anyone looking to treat themselves and give their skin some love!',
+        time: '11 weeks ago',
+        photo: null
+      },
+      {
+        author: 'Leanna Wieczorek',
+        rating: 5,
+        text: 'Dina does such an amazing job! My skin has never looked or felt better.',
+        time: '12 weeks ago',
+        photo: null
+      },
+      {
+        author: 'Anastasiya Piatsevich',
+        rating: 5,
+        text: 'I can easily say this was the best facial experience I ever had. Dina took such amazing care of my skin, explained every step of the process, and gave me personalized recommendations based on my skin\'s needs. You can truly tell she is passionate and knowledgeable about what she does. And the absolute best part — the massage she performed was incredible. So relaxing, calming, and honestly unforgettable. I left feeling refreshed, glowing, and completely taken care of. Highly recommend.',
+        time: '24 weeks ago',
+        photo: null
+      },
+      {
+        author: 'Anastasia Adeler',
+        rating: 5,
+        text: 'I don\'t typically write reviews, but this one felt necessary. I received a gift certificate for my birthday, and honestly, what a gift. From the moment I walked in, every detail had been thought through. There was a care and intentionality to everything that made me forget what time it was. I left with my skin genuinely glowing, that luminous quality that doesn\'t wash off, a sweet little goodie bag, and enough positive energy to last well past the appointment. Highly recommend.',
+        time: '26 weeks ago',
+        photo: null
+      },
+      {
+        author: 'Darya Martynenka',
+        rating: 5,
+        text: 'Dina is the best at what she does. My skin has never looked this healthy and glowing. She takes the time to explain everything, customizes treatments to your skin needs, and makes you feel so comfortable the entire time. You can truly tell she\'s passionate about what she does. If you want someone who delivers real results and a luxury experience — she\'s the best aesthetician hands down.',
+        time: '29 weeks ago',
         photo: null
       }
     ]
